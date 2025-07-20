@@ -1,0 +1,437 @@
+body {
+  background: #111;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.casino-bg {
+  min-height: 100vh;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 0 30px 0;
+  background: #111;
+}
+
+.casino-title {
+  font-size: 2.7rem;
+  margin-bottom: 18px;
+  text-shadow: 1px 1px 12px #000c;
+  letter-spacing: 2px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-weight: 800;
+}
+
+.casino-form {
+  display: flex;
+  gap: 13px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.casino-input {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 1.13em;
+  background: #232323;
+  color: #fff;
+  width: 110px;
+  text-align: center;
+  outline: none;
+  box-shadow: 0 2px 7px #0003;
+}
+
+.casino-btn {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 1.06em;
+  font-weight: bold;
+  margin: 0 2px;
+  transition: background 0.15s, box-shadow 0.16s, color 0.13s;
+  box-shadow: 0 2px 7px #0002;
+  letter-spacing: 1px;
+}
+.casino-btn.add {
+  background: #2bd26c;
+  color: #181818;
+}
+.casino-btn.add:hover {
+  background: #11ac50;
+  color: #fff;
+}
+.casino-btn.reset {
+  background: #e24d3a;
+  color: #fff;
+}
+.casino-btn.reset:hover {
+  background: #a81e1e;
+}
+.casino-btn.undo {
+  background: #343cfc;
+  color: #fff;
+  margin-left: 5px;
+}
+.casino-btn.undo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.casino-btn.undo:hover:not(:disabled) {
+  background: #2029a5;
+  color: #fff;
+}
+
+/* --- TABLE CASINO --- */
+
+.table-roulette {
+  display: flex;
+  justify-content: center;
+  margin: 38px 0 28px 0;
+  width: 900px;
+  max-width: 99vw;
+}
+
+.main-table-v2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.zero-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.zero-row .case {
+  width: 200px;
+  height: 42px;
+  font-size: 1.25em;
+  margin-bottom: 0;
+  margin-right: 0;
+  border-radius: 13px;
+  box-shadow: 0 4px 13px #0008;
+}
+
+.main-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.table-row {
+  display: flex;
+  justify-content: center;
+}
+
+.case {
+  width: 65px;
+  height: 50px;
+  font-size: 1.32em;
+  margin: 2.5px 3px;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px #0008;
+  font-weight: bold;
+  border: 2.5px solid #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.16s, border 0.18s, background 0.15s;
+  color: #fff;
+  outline: none;
+  user-select: none;
+}
+
+.case.selected {
+  border: 2.8px solid #ffe34d;
+  box-shadow: 0 0 14px 3px #ffe34d88, 0 4px 18px #0009;
+  z-index: 2;
+}
+
+.case.green,
+.case.num0 {
+  background: linear-gradient(120deg,#1fad3d 60%,#259c44 100%);
+}
+.case.red {
+  background: linear-gradient(120deg,#d03b2d 60%,#b7161b 100%);
+}
+.case.black {
+  background: linear-gradient(120deg,#292c2e 70%,#161718 100%);
+}
+
+.delay {
+  font-size: 0.82em;
+  font-weight: normal;
+  color: #ffe47a;
+  margin-top: 1.5px;
+}
+
+.dozen-row, .outside-row, .col-row {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  justify-content: center;
+}
+
+.dozen-row {
+  margin-top: 8px;
+}
+
+.dozen-cell {
+  width: 195px;
+  height: 38px;
+  background: linear-gradient(110deg,#208c3c 65%,#12692d 100%);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  font-size: 1.09em;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 5px 2.5px;
+  position: relative;
+  margin-bottom: 3px;
+  box-shadow: 0 2px 7px #0005;
+}
+.dozen-cell:last-child {
+  margin-right: 0;
+}
+.zone-delay {
+  font-size: 0.92em;
+  color: #ffe47a;
+  font-weight: normal;
+  margin-top: -2px;
+  text-shadow: 1px 1px 6px #000a;
+}
+
+.outside-row {
+  margin-top: 7px;
+}
+
+.outside-cell {
+  width: 98px;
+  height: 35px;
+  background: linear-gradient(100deg,#198344 60%,#164529 100%);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 9px;
+  font-size: 1.02em;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 3.5px 2.5px;
+  position: relative;
+  margin-bottom: 3px;
+  box-shadow: 0 2px 7px #0004;
+}
+.outside-cell:last-child {
+  margin-right: 0;
+}
+.red-case {
+  background: linear-gradient(120deg,#e04638 60%,#b91619 100%);
+  color: #fff;
+}
+.black-case {
+  background: linear-gradient(120deg,#232323 65%,#090a0a 100%);
+  color: #fff;
+}
+
+.col-row {
+  margin-top: 7px;
+  margin-bottom: -7px;
+}
+
+.col-cell {
+  width: 65px;
+  height: 34px;
+  background: linear-gradient(110deg,#189e40 50%,#13692e 100%);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  font-size: 1.01em;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 4.5px 73px 0 1.5px;
+  position: relative;
+  box-shadow: 0 2px 7px #0004;
+}
+.col-cell:last-child { margin-right: 0; }
+.col-cell .zone-delay {
+  margin-top: -2px;
+}
+
+/* --- CLASSEMENT RETARD --- */
+.side-ranking {
+  margin-left: 38px;
+  background: #181818;
+  border-radius: 13px;
+  padding: 22px 26px 18px 22px;
+  min-width: 240px;
+  box-shadow: 0 0 14px #0006;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: fit-content;
+}
+
+.hr-sep {
+  border: none;
+  border-top: 1.5px solid #2bd26c33;
+  margin: 16px 0 12px 0;
+}
+.side-ranking h2 {
+  font-size: 1.13em;
+  color: #ffe34d;
+  margin-bottom: 11px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin-top: 7px;
+}
+.side-ranking ul {
+  margin-bottom: 0;
+}
+.side-ranking ul:first-of-type {
+  margin-bottom: 3px;
+}
+.side-ranking ul:last-of-type {
+  margin-bottom: 0;
+}
+.side-ranking li {
+  margin-bottom: 6px;
+  font-size: 1.04em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.side-ranking-list {
+  width: 100%;
+  margin: 0 0 12px 0;
+  border-collapse: collapse;
+}
+.side-ranking-list tr {
+  border-bottom: 1px solid #23232333;
+}
+.side-ranking-list tr:last-child {
+  border-bottom: none;
+}
+.side-ranking-label {
+  font-weight: bold;
+  color: #ffe34d;
+  width: 85px;
+  text-align: left;
+  padding-right: 6px;
+  font-size: 1em;
+  vertical-align: middle;
+}
+.side-ranking-value {
+  color: #fff;
+  width: 80px;
+  text-align: center;
+  font-size: 1em;
+  font-weight: 500;
+}
+.side-ranking-delay {
+  color: #ffe34d;
+  font-weight: bold;
+  font-size: 1.04em;
+  width: 60px;
+  text-align: right;
+  padding-left: 7px;
+  letter-spacing: 0.5px;
+}
+
+.rank-delay {
+  font-size: 0.98em;
+  color: #ffe47a;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.casino-history {
+  width: 100%;
+  max-width: 500px;
+  background: #171d1b;
+  border-radius: 13px;
+  padding: 18px 24px 18px 17px;
+  margin-top: 36px;
+  box-shadow: 0 0 18px #0008;
+}
+
+.casino-history b {
+  color: #ffe34d;
+  font-size: 1.09em;
+}
+
+.history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 10px;
+}
+.history-num {
+  padding: 7px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 1.05em;
+  display: inline-block;
+  color: #fff;
+  box-shadow: 0 2px 6px #0003;
+}
+.history-num.red {
+  background: #c41b23;
+}
+.history-num.black {
+  background: #232323;
+  border: 1px solid #444;
+}
+.history-num.green {
+  background: #16a94d;
+}
+.history-num.last {
+  border: 2px solid #ffe34d;
+  box-shadow: 0 0 9px #ffe34d99;
+}
+.history-empty {
+  color: #b0b0b0;
+  font-style: italic;
+  font-size: 1em;
+  padding-left: 8px;
+}
+
+/* Responsive mobile */
+@media (max-width: 1100px) {
+  .side-ranking { margin-left: 10px; min-width: 170px; padding: 13px 10px; }
+  .table-roulette { width: 98vw; }
+}
+@media (max-width: 900px) {
+  .side-ranking { display: none; }
+  .table-roulette, .main-table-v2, .dozen-row, .outside-row, .col-row { max-width: 98vw; }
+  .dozen-cell { width: 120px; }
+  .outside-cell { width: 65px; }
+  .col-cell { width: 43px; margin-right: 35px;}
+  .main-table-v2 { zoom: 0.85; }
+}
+@media (max-width: 700px) {
+  .main-table-v2 { zoom: 0.7; }
+  .table-roulette { zoom: 0.7; }
+  .dozen-cell { width: 90px; }
+  .outside-cell { width: 45px; }
+  .col-cell { width: 25px; margin-right: 18px;}
+}

@@ -8,8 +8,6 @@ function getRetardColor(ratio) {
   if (ratio > 9) ratio = 9;
 
   const colors = [
-    { stop: 0.2, color: [60, 180, 255] }, // Bleu (avance forte)
-    { stop: 0.5, color: [50, 215, 240] }, // Turquoise (avance)
     { stop: 1, color: [39, 224, 76] },    // Vert (normal)
     { stop: 3, color: [255, 224, 54] },   // Jaune (petit retard)
     { stop: 5, color: [255, 143, 40] },   // Orange (retard fort)

@@ -3,7 +3,7 @@ import "./App.css";
 
 // Fonction utilitaire couleur dynamique selon le ratio
 function getRetardColor(ratio) {
-  // Clamp ratio entre 0.2 et 9
+  // Clamp le ratio pour éviter les extrêmes
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
 
@@ -11,9 +11,9 @@ function getRetardColor(ratio) {
     { stop: 0.2, color: [60, 180, 255] }, // Bleu (avance forte)
     { stop: 0.5, color: [50, 215, 240] }, // Turquoise (avance)
     { stop: 1, color: [39, 224, 76] },    // Vert (normal)
-    { stop: 2, color: [255, 224, 54] },   // Jaune (petit retard)
+    { stop: 3, color: [255, 224, 54] },   // Jaune (petit retard)
     { stop: 5, color: [255, 143, 40] },   // Orange (retard fort)
-    { stop: 7, color: [255, 48, 48] },    // Rouge clair (retard très fort)
+    { stop: 6, color: [255, 48, 48] },    // Rouge clair (retard très fort)
     { stop: 9, color: [130, 0, 30] }      // Rouge foncé (retard extrême)
   ];
 
@@ -31,6 +31,7 @@ function getRetardColor(ratio) {
   const color = from.color.map((c, i) => Math.round(c + (to.color[i] - c) * t));
   return `rgb(${color[0]},${color[1]},${color[2]})`;
 }
+
 
 
 // Helpers pour la roulette

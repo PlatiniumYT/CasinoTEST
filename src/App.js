@@ -1,296 +1,531 @@
 import React, { useState } from "react";
 import "./App.css";
 
-const TABLE = [
-  [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],
-  [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],
-  [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34],
-];
+// Fonction utilitaire couleur dynamique selon le ratio
+function getRetardColor(ratio) {
+  // Clamp ratio entre 0.2 et 9
+  if (ratio < 0.2) ratio = 0.2;
+  if (ratio > 9) ratio = 9;
 
-const REDS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
-function getColor(n) {
-  if (n === 0) return "green";
-  return REDS.includes(n) ? "red" : "black";
-}
-const rouletteNumbers = Array.from({ length: 37 }, (_, i) => i);
+  const colors = [
+    { stop: 0.2, color: [60, 180, 255] }, // Bleu (avance forte)
+    { stop: 0.5, color: [50, 215, 240] }, // Turquoise (avance)
+    { stop: 1, color: [39, 224, 76] },    // Vert (normal)
+    { stop: 2, color: [255, 224, 54] },   // Jaune (petit retard)
+    { stop: 5, color: [255, 143, 40] },   // Orange (retard fort)
+    { stop: 7, color: [255, 48, 48] },    // Rouge clair (retard très fort)
+    { stop: 9, color: [130, 0, 30] }      // Rouge foncé (retard extrême)
+  ];
 
-function getDozen(n) {
-  if (n >= 1 && n <= 12) return 0;
-  if (n >= 13 && n <= 24) return 1;
-  if (n >= 25 && n <= 36) return 2;
-  return -1;
-}
-function getColumn(n) {
-  if (n === 0) return -1;
-  return (n - 1) % 3;
-}
-function getRange(n) {
-  if (n >= 1 && n <= 18) return 0;
-  if (n >= 19 && n <= 36) return 1;
-  return -1;
-}
-function getEvenOdd(n) {
-  if (n === 0) return -1;
-  return n % 2 === 0 ? 0 : 1;
-}
-
-export default function App() {
-  const [history, setHistory] = useState([]);
-  const [inputValue, setInputValue] = useState("");
-
-  const delayCounts = rouletteNumbers.map((num) => {
-    let lastIndex = history.lastIndexOf(num);
-    return lastIndex === -1 ? history.length : history.length - lastIndex - 1;
-  });
-
-  const dozenDelay = [0,1,2].map(idx => {
-    let last = history.length - 1;
-    while (last >= 0 && getDozen(history[last]) !== idx) last--;
-    return last === -1 ? history.length : history.length - last - 1;
-  });
-
-  const colDelay = [0,1,2].map(idx => {
-    let last = history.length - 1;
-    while (last >= 0 && getColumn(history[last]) !== idx) last--;
-    return last === -1 ? history.length : history.length - last - 1;
-  });
-
-  const colorDelay = ["red", "black"].map(clr => {
-    let last = history.length - 1;
-    while (last >= 0 && getColor(history[last]) !== clr) last--;
-    return last === -1 ? history.length : history.length - last - 1;
-  });
-
-  const evenOddDelay = [0,1].map(idx => {
-    let last = history.length - 1;
-    while (last >= 0 && getEvenOdd(history[last]) !== idx) last--;
-    return last === -1 ? history.length : history.length - last - 1;
-  });
-
-  const rangeDelay = [0,1].map(idx => {
-    let last = history.length - 1;
-    while (last >= 0 && getRange(history[last]) !== idx) last--;
-    return last === -1 ? history.length : history.length - last - 1;
-  });
-
-  const maxDelayDozen = [
-    { idx: 0, delay: dozenDelay[0] },
-    { idx: 1, delay: dozenDelay[1] },
-    { idx: 2, delay: dozenDelay[2] }
-  ].sort((a, b) => b.delay - a.delay)[0];
-  const maxDelayCol = [
-    { idx: 0, delay: colDelay[0] },
-    { idx: 1, delay: colDelay[1] },
-    { idx: 2, delay: colDelay[2] }
-  ].sort((a, b) => b.delay - a.delay)[0];
-  const maxDelayColor = [
-    { idx: 0, delay: colorDelay[0] },
-    { idx: 1, delay: colorDelay[1] }
-  ].sort((a, b) => b.delay - a.delay)[0];
-  const maxDelayEvenOdd = [
-    { idx: 0, delay: evenOddDelay[0] },
-    { idx: 1, delay: evenOddDelay[1] }
-  ].sort((a, b) => b.delay - a.delay)[0];
-  const maxDelayRange = [
-    { idx: 0, delay: rangeDelay[0] },
-    { idx: 1, delay: rangeDelay[1] }
-  ].sort((a, b) => b.delay - a.delay)[0];
-
-  function handleAddNumber(num) {
-    if (!rouletteNumbers.includes(num)) return;
-    setHistory((h) => [...h, num]);
-    setInputValue("");
+  let from, to;
+  for (let i = 0; i < colors.length - 1; i++) {
+    if (ratio >= colors[i].stop && ratio <= colors[i + 1].stop) {
+      from = colors[i];
+      to = colors[i + 1];
+      break;
+    }
   }
-  function handleInputChange(e) {
-    setInputValue(e.target.value.replace(/[^0-9]/g, ""));
+  if (!from) { from = colors[0]; to = colors[1]; }
+  if (!to) { from = colors[colors.length - 2]; to = colors[colors.length - 1]; }
+  const t = (ratio - from.stop) / (to.stop - from.stop);
+  const color = from.color.map((c, i) => Math.round(c + (to.color[i] - c) * t));
+  return `rgb(${color[0]},${color[1]},${color[2]})`;
+}
+
+
+// Helpers pour la roulette
+const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+const BLACK_NUMBERS = [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35];
+
+function getColor(num) {
+  if (num === 0) return "green";
+  if (RED_NUMBERS.includes(num)) return "red";
+  if (BLACK_NUMBERS.includes(num)) return "black";
+  return "";
+}
+
+function getDozen(num) {
+  if (num === 0) return null;
+  if (num <= 12) return 1;
+  if (num <= 24) return 2;
+  return 3;
+}
+
+function getColumn(num) {
+  if (num === 0) return null;
+  return ((num - 1) % 3) + 1;
+}
+
+function getParity(num) {
+  if (num === 0) return null;
+  return num % 2 === 0 ? "even" : "odd";
+}
+
+function getHalf(num) {
+  if (num === 0) return null;
+  return num <= 18 ? "low" : "high";
+}
+
+// Probas
+const PROBA = {
+  number: 1 / 37,
+  red: 18 / 37,
+  black: 18 / 37,
+  green: 1 / 37,
+  dozen: 12 / 37,
+  column: 12 / 37,
+  even: 18 / 37,
+  odd: 18 / 37,
+  low: 18 / 37,
+  high: 18 / 37,
+};
+
+// Espérance
+const ESPERANCE = {
+  number: 1 / PROBA.number,     // 37
+  red: 1 / PROBA.red,           // ~2.06
+  black: 1 / PROBA.black,
+  green: 1 / PROBA.green,       // 37
+  dozen: 1 / PROBA.dozen,       // ~3.08
+  column: 1 / PROBA.column,
+  even: 1 / PROBA.even,
+  odd: 1 / PROBA.odd,
+  low: 1 / PROBA.low,
+  high: 1 / PROBA.high,
+};
+
+const ALL_NUMBERS = Array.from({ length: 37 }, (_, i) => i);
+const ALL_DOZENS = [1, 2, 3];
+const ALL_COLUMNS = [1, 2, 3];
+const ALL_COLORS = ["red", "black", "green"];
+const ALL_PARITIES = ["even", "odd"];
+const ALL_HALVES = ["low", "high"];
+
+function App() {
+  const [tirages, setTirages] = useState([]);
+  const [input, setInput] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [undoStack, setUndoStack] = useState([]);
+
+  // Ajout tirage
+  function handleAdd() {
+    const num = Number(input);
+    if (!Number.isInteger(num) || num < 0 || num > 36) return;
+    setUndoStack([...undoStack, tirages]);
+    setTirages([...tirages, num]);
+    setInput("");
+    setSelected(num);
   }
-  function handleInputSubmit(e) {
-    e.preventDefault();
-    let num = Number(inputValue);
-    if (rouletteNumbers.includes(num)) handleAddNumber(num);
+
+  // Reset tout
+  function handleReset() {
+    setUndoStack([...undoStack, tirages]);
+    setTirages([]);
+    setSelected(null);
   }
-  function handleClearHistory() {
-    setHistory([]);
+
+  // Undo
+  function handleUndo() {
+    if (undoStack.length === 0) return;
+    setTirages(undoStack[undoStack.length - 1]);
+    setUndoStack(undoStack.slice(0, -1));
+    setSelected(null);
+  }
+
+  // Retards calcul
+  function calcRetards(type, items, fn) {
+    let retards = {};
+    for (let val of items) {
+      let count = 0;
+      for (let i = tirages.length - 1; i >= 0; i--) {
+        if (fn(tirages[i]) === val) break;
+        count++;
+      }
+      if (!tirages.some(t => fn(t) === val)) count = tirages.length;
+      retards[val] = count;
+    }
+    return retards;
+  }
+
+  // Retards pour chaque zone
+  const retardsNum = calcRetards("number", ALL_NUMBERS, t => t);
+  const retardsColor = calcRetards("color", ALL_COLORS, getColor);
+  const retardsDozen = calcRetards("dozen", ALL_DOZENS, getDozen);
+  const retardsColumn = calcRetards("column", ALL_COLUMNS, getColumn);
+  const retardsParity = calcRetards("parity", ALL_PARITIES, getParity);
+  const retardsHalf = calcRetards("half", ALL_HALVES, getHalf);
+
+  // Pour l'affichage table, colorier sélection
+  function isSelected(num) {
+    return selected === num;
+  }
+
+  // Pour affichage couleur retard selon ratio
+  function retardColor(type, value, retard) {
+    let esperance = 1;
+    switch (type) {
+      case "number":
+        esperance = ESPERANCE.number;
+        break;
+      case "color":
+        if (value === "green") esperance = ESPERANCE.green;
+        else esperance = ESPERANCE.red; // Rouge ou noir
+        break;
+      case "dozen":
+        esperance = ESPERANCE.dozen;
+        break;
+      case "column":
+        esperance = ESPERANCE.column;
+        break;
+      case "parity":
+        esperance = ESPERANCE.even;
+        break;
+      case "half":
+        esperance = ESPERANCE.low;
+        break;
+      default:
+        esperance = 1;
+    }
+    const ratio = retard / esperance;
+    return getRetardColor(ratio);
   }
 
   return (
     <div className="casino-bg">
-      <h1 className="casino-title">Roulette Casino Tracker</h1>
-      <form onSubmit={handleInputSubmit} className="casino-form">
+      <div className="casino-title">Roulette Casino — Tracker de Retards</div>
+      <div className="casino-form">
         <input
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          placeholder="Numéro sorti"
-          maxLength={2}
           className="casino-input"
+          type="number"
+          min={0}
+          max={36}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Numéro (0-36)"
+          onKeyDown={e => {
+            if (e.key === "Enter") handleAdd();
+          }}
         />
-        <button type="submit" className="casino-btn add">Ajouter</button>
-        <button type="button" className="casino-btn reset" onClick={handleClearHistory}>
-          Réinitialiser
+        <button className="casino-btn add" onClick={handleAdd}>
+          Ajouter
         </button>
-        <button
-          type="button"
-          className="casino-btn undo"
-          onClick={() => setHistory(history.slice(0, -1))}
-          disabled={history.length === 0}
-        >
-          Retour arrière
+        <button className="casino-btn reset" onClick={handleReset}>
+          Reset
         </button>
-      </form>
+        <button className="casino-btn undo" onClick={handleUndo} disabled={undoStack.length === 0}>
+          Annuler
+        </button>
+      </div>
 
+      {/* Table roulette */}
       <div className="table-roulette">
         <div className="main-table-v2">
+          {/* Ligne du zéro */}
           <div className="zero-row">
-            <button
-              className={`case num0 ${history[history.length - 1] === 0 ? "selected" : ""}`}
-              onClick={() => handleAddNumber(0)}
+            <div
+              className={`case num0 green${isSelected(0) ? " selected" : ""}`}
+              onClick={() => {
+                setUndoStack([...undoStack, tirages]);
+                setTirages([...tirages, 0]);
+                setSelected(0);
+              }}
             >
               0
-              <span className="delay">{delayCounts[0]}</span>
-            </button>
+              <span className="delay"
+                style={{
+                  color: retardColor("number", 0, retardsNum[0])
+                }}>
+                {retardsNum[0]}
+              </span>
+            </div>
           </div>
+          {/* Grille principale */}
           <div className="main-grid">
-            {[...Array(12)].map((_, row) => (
-              <div className="table-row" key={row}>
-                {TABLE.map((col, cIdx) => {
-                  const n = col[row];
+            {[...Array(12)].map((_, r) => (
+              <div className="table-row" key={r}>
+                {[...Array(3)].map((_, c) => {
+                  const num = r * 3 + c + 1;
+                  const color = getColor(num);
                   return (
-                    <button
-                      key={n}
-                      className={`case num${n} ${getColor(n)} ${
-                        history[history.length - 1] === n ? "selected" : ""
-                      }`}
-                      onClick={() => handleAddNumber(n)}
+                    <div
+                      className={`case ${color}${isSelected(num) ? " selected" : ""}`}
+                      key={num}
+                      onClick={() => {
+                        setUndoStack([...undoStack, tirages]);
+                        setTirages([...tirages, num]);
+                        setSelected(num);
+                      }}
                     >
-                      {n}
-                      <span className="delay">{delayCounts[n]}</span>
-                    </button>
+                      {num}
+                      <span className="delay"
+                        style={{
+                          color: retardColor("number", num, retardsNum[num])
+                        }}>
+                        {retardsNum[num]}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
             ))}
           </div>
+          {/* Douzaines */}
           <div className="dozen-row">
-            <div className="dozen-cell">
-              1st 12
-              <span className="zone-delay">{dozenDelay[0]}</span>
-            </div>
-            <div className="dozen-cell">
-              2nd 12
-              <span className="zone-delay">{dozenDelay[1]}</span>
-            </div>
-            <div className="dozen-cell">
-              3rd 12
-              <span className="zone-delay">{dozenDelay[2]}</span>
-            </div>
+            {ALL_DOZENS.map(doz => (
+              <div className="dozen-cell" key={doz}>
+                {doz}ᵉ Douzaine
+                <span className="zone-delay"
+                  style={{
+                    color: retardColor("dozen", doz, retardsDozen[doz])
+                  }}>
+                  {retardsDozen[doz]}
+                </span>
+              </div>
+            ))}
           </div>
+          {/* Outside bets */}
           <div className="outside-row">
-            <div className="outside-cell">
-              1 to 18
-              <span className="zone-delay">{rangeDelay[0]}</span>
-            </div>
-            <div className="outside-cell">
-              EVEN
-              <span className="zone-delay">{evenOddDelay[0]}</span>
-            </div>
             <div className="outside-cell red-case">
-              RED
-              <span className="zone-delay">{colorDelay[0]}</span>
+              Rouge
+              <span className="zone-delay"
+                style={{
+                  color: retardColor("color", "red", retardsColor.red)
+                }}>
+                {retardsColor.red}
+              </span>
             </div>
             <div className="outside-cell black-case">
-              BLACK
-              <span className="zone-delay">{colorDelay[1]}</span>
+              Noir
+              <span className="zone-delay"
+                style={{
+                  color: retardColor("color", "black", retardsColor.black)
+                }}>
+                {retardsColor.black}
+              </span>
             </div>
             <div className="outside-cell">
-              ODD
-              <span className="zone-delay">{evenOddDelay[1]}</span>
+              Pair
+              <span className="zone-delay"
+                style={{
+                  color: retardColor("parity", "even", retardsParity.even)
+                }}>
+                {retardsParity.even}
+              </span>
             </div>
             <div className="outside-cell">
-              19 to 36
-              <span className="zone-delay">{rangeDelay[1]}</span>
+              Impair
+              <span className="zone-delay"
+                style={{
+                  color: retardColor("parity", "odd", retardsParity.odd)
+                }}>
+                {retardsParity.odd}
+              </span>
             </div>
           </div>
+          {/* High / Low */}
+          <div className="outside-row">
+            <div className="outside-cell">
+              Manque (1-18)
+              <span className="zone-delay"
+                style={{
+                  color: retardColor("half", "low", retardsHalf.low)
+                }}>
+                {retardsHalf.low}
+              </span>
+            </div>
+            <div className="outside-cell">
+              Passe (19-36)
+              <span className="zone-delay"
+                style={{
+                  color: retardColor("half", "high", retardsHalf.high)
+                }}>
+                {retardsHalf.high}
+              </span>
+            </div>
+          </div>
+          {/* Colonnes */}
           <div className="col-row">
-            <div className="col-cell">
-              2 to 1
-              <span className="zone-delay">{colDelay[0]}</span>
-            </div>
-            <div className="col-cell">
-              2 to 1
-              <span className="zone-delay">{colDelay[1]}</span>
-            </div>
-            <div className="col-cell">
-              2 to 1
-              <span className="zone-delay">{colDelay[2]}</span>
-            </div>
+            {ALL_COLUMNS.map(col => (
+              <div className="col-cell" key={col}>
+                Col {col}
+                <span className="zone-delay"
+                  style={{
+                    color: retardColor("column", col, retardsColumn[col])
+                  }}>
+                  {retardsColumn[col]}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* CLASSEMENT DU RETARD */}
+        {/* Classement retards à droite */}
         <div className="side-ranking">
-          <h2>Classement retard (Numéros)</h2>
-          <ul>
-            {delayCounts
-              .map((delay, num) => ({ num, delay }))
-              .sort((a, b) => b.delay - a.delay)
-              .slice(0, 10)
-              .map((item) => (
-                <li key={item.num}>
-                  <b>
-                    {item.num}
-                  </b>
-                  <span className="rank-delay">{item.delay} tours</span>
-                </li>
-              ))}
-          </ul>
-          <hr className="hr-sep" />
-          <h2>Classement retard (Catégories)</h2>
+          <h2>Classement Retards — Numéros</h2>
           <table className="side-ranking-list">
             <tbody>
-              <tr>
-                <td className="side-ranking-label">Douzaine</td>
-                <td className="side-ranking-value">{["1st 12", "2nd 12", "3rd 12"][maxDelayDozen.idx]}</td>
-                <td className="side-ranking-delay">{maxDelayDozen.delay} tours</td>
-              </tr>
-              <tr>
-                <td className="side-ranking-label">Colonne</td>
-                <td className="side-ranking-value">{["Colonne 1", "Colonne 2", "Colonne 3"][maxDelayCol.idx]}</td>
-                <td className="side-ranking-delay">{maxDelayCol.delay} tours</td>
-              </tr>
-              <tr>
-                <td className="side-ranking-label">Couleur</td>
-                <td className="side-ranking-value">{["Rouge", "Noir"][maxDelayColor.idx]}</td>
-                <td className="side-ranking-delay">{maxDelayColor.delay} tours</td>
-              </tr>
-              <tr>
-                <td className="side-ranking-label">Pair/Impair</td>
-                <td className="side-ranking-value">{["Pair", "Impair"][maxDelayEvenOdd.idx]}</td>
-                <td className="side-ranking-delay">{maxDelayEvenOdd.delay} tours</td>
-              </tr>
-              <tr>
-                <td className="side-ranking-label">1-18/19-36</td>
-                <td className="side-ranking-value">{["1-18", "19-36"][maxDelayRange.idx]}</td>
-                <td className="side-ranking-delay">{maxDelayRange.delay} tours</td>
-              </tr>
+              {ALL_NUMBERS
+                .map(n => ({
+                  num: n,
+                  retard: retardsNum[n]
+                }))
+                .sort((a, b) => b.retard - a.retard)
+                .slice(0, 10)
+                .map(({ num, retard }, i) => (
+                  <tr key={num}>
+                    <td className="side-ranking-label">{num}</td>
+                    <td
+                      className="side-ranking-delay"
+                      style={{
+                        color: retardColor("number", num, retard)
+                      }}>
+                      {retard}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
+          <hr className="hr-sep" />
+          <h2>Classement Retards — Catégories</h2>
+          <ul>
+            <li>
+              <span>Rouge</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("color", "red", retardsColor.red) }}
+              >
+                {retardsColor.red}
+              </span>
+            </li>
+            <li>
+              <span>Noir</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("color", "black", retardsColor.black) }}
+              >
+                {retardsColor.black}
+              </span>
+            </li>
+            <li>
+              <span>Vert</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("color", "green", retardsColor.green) }}
+              >
+                {retardsColor.green}
+              </span>
+            </li>
+            <li>
+              <span>Douzaine 1</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("dozen", 1, retardsDozen[1]) }}
+              >
+                {retardsDozen[1]}
+              </span>
+            </li>
+            <li>
+              <span>Douzaine 2</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("dozen", 2, retardsDozen[2]) }}
+              >
+                {retardsDozen[2]}
+              </span>
+            </li>
+            <li>
+              <span>Douzaine 3</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("dozen", 3, retardsDozen[3]) }}
+              >
+                {retardsDozen[3]}
+              </span>
+            </li>
+            <li>
+              <span>Colonne 1</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("column", 1, retardsColumn[1]) }}
+              >
+                {retardsColumn[1]}
+              </span>
+            </li>
+            <li>
+              <span>Colonne 2</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("column", 2, retardsColumn[2]) }}
+              >
+                {retardsColumn[2]}
+              </span>
+            </li>
+            <li>
+              <span>Colonne 3</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("column", 3, retardsColumn[3]) }}
+              >
+                {retardsColumn[3]}
+              </span>
+            </li>
+            <li>
+              <span>Pair</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("parity", "even", retardsParity.even) }}
+              >
+                {retardsParity.even}
+              </span>
+            </li>
+            <li>
+              <span>Impair</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("parity", "odd", retardsParity.odd) }}
+              >
+                {retardsParity.odd}
+              </span>
+            </li>
+            <li>
+              <span>Manque (1-18)</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("half", "low", retardsHalf.low) }}
+              >
+                {retardsHalf.low}
+              </span>
+            </li>
+            <li>
+              <span>Passe (19-36)</span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("half", "high", retardsHalf.high) }}
+              >
+                {retardsHalf.high}
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
 
       {/* Historique */}
       <div className="casino-history">
-        <b>Historique :</b>
+        <b>Historique des tirages :</b>
         <div className="history-list">
-          {history.length === 0 ? (
-            <span className="history-empty">Aucun numéro saisi.</span>
+          {tirages.length === 0 ? (
+            <span className="history-empty">Aucun tirage.</span>
           ) : (
-            history.map((num, i) => (
+            tirages.slice(-30).map((num, idx) => (
               <span
-                key={i}
-                className={`history-num ${getColor(num)} ${
-                  i === history.length - 1 ? "last" : ""
-                }`}
+                key={idx}
+                className={
+                  `history-num ${getColor(num)}${idx === tirages.length - 1 ? " last" : ""}`
+                }
+                onClick={() => {
+                  setUndoStack([...undoStack, tirages]);
+                  setTirages([...tirages, num]);
+                  setSelected(num);
+                }}
               >
                 {num}
               </span>
@@ -301,3 +536,5 @@ export default function App() {
     </div>
   );
 }
+
+export default App;

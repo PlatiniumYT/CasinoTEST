@@ -97,6 +97,42 @@ body {
   box-shadow: 0 0 12px #ffe34d88;
 }
 
+.casino-btn.export {
+  background: #2bd26c;
+  color: #232;
+  font-weight: 700;
+}
+.casino-btn.export:hover {
+  background: #13ab56;
+  color: #fff;
+}
+
+.casino-btn.import {
+  background: #ffe34d;
+  color: #232;
+  font-weight: 700;
+  border: none;
+}
+.casino-btn.import:hover {
+  background: #fff700;
+  color: #181818;
+  box-shadow: 0 0 12px #ffe34d88;
+}
+
+/* --- bouton sync CASINO --- */
+
+.casino-btn.sync {
+  background: #ffad0e;
+  color: #222;
+  font-weight: 700;
+}
+.casino-btn.sync:hover {
+  background: #ffd470;
+}
+
+
+
+
 /* --- TABLE CASINO --- */
 
 .table-roulette {

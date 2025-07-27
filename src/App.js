@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import "./App.css";
 import { RouletteWheel } from "./RouletteWheel";
 
@@ -54,6 +54,8 @@ function getRetardColor(ratio) {
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
   const colors = [
+    { stop: 0.2, color: [60, 180, 255] }, // Bleu (avance forte)
+    { stop: 0.5, color: [50, 215, 240] }, // Turquoise (avance)
     { stop: 1, color: [39, 224, 76] },    // Vert (normal)
     { stop: 3, color: [255, 224, 54] },   // Jaune (retard modéré)
     { stop: 5, color: [255, 143, 40] },   // Orange (retard fort)
@@ -81,6 +83,33 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [keyNumber, setKeyNumber] = useState(null);
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef(null);
+
+  // Fonction pour synchroniser le websocket avec le serveur Python
+  function handleSyncWebSocket() {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    const ws = new window.WebSocket("ws://localhost:8765");
+    wsRef.current = ws;
+
+    ws.onopen = () => setWsConnected(true);
+    ws.onclose = () => setWsConnected(false);
+    ws.onerror = () => setWsConnected(false);
+
+    ws.onmessage = event => {
+      try {
+        const data = JSON.parse(event.data);
+        if (typeof data.result !== "undefined") {
+          setUndoStack(current => [...current, tirages]);
+          setTirages(current => [...current, Number(data.result)]);
+          setSelected(Number(data.result));
+        }
+      } catch (e) { /* ignore */ }
+    };
+  }
 
   function handleAdd() {
     const num = Number(input);
@@ -109,6 +138,40 @@ function App() {
     setTirages([...tirages, num]);
     setSelected(num);
   }
+  function handleExport() {
+    const blob = new Blob([JSON.stringify(tirages)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "historique-roulette.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+  function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (Array.isArray(data) && data.every(n => Number.isInteger(n) && n >= 0 && n <= 36)) {
+          setUndoStack([...undoStack, tirages]);
+          setTirages([...tirages, ...data]);
+          setSelected([...tirages, ...data].slice(-1)[0] ?? null);
+          setKeyNumber(null);
+        } else {
+          alert("Fichier invalide (attendu : liste de numéros 0-36)");
+        }
+      } catch {
+        alert("Fichier invalide ou corrompu.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
   function calcRetards(type, items, fn) {
     let retards = {};
     for (let val of items) {
@@ -200,6 +263,39 @@ function App() {
         </button>
         <button className="casino-btn reset" onClick={handleReset}>Reset</button>
         <button className="casino-btn undo" onClick={handleUndo} disabled={undoStack.length === 0}>Annuler</button>
+        <button
+          className="casino-btn export"
+          style={{ background: "#2bd26c", color: "#232" }}
+          onClick={handleExport}
+        >
+          📥 Exporter
+        </button>
+        <label
+          className="casino-btn import"
+          style={{
+            background: "#ffe34d", color: "#232",
+            fontWeight: 700, cursor: "pointer", display: "inline-block"
+          }}
+        >
+          📤 Importer
+          <input
+            type="file"
+            accept=".json"
+            style={{ display: "none" }}
+            onChange={handleImport}
+          />
+        </label>
+        <button
+          className="casino-btn sync"
+          style={{
+            background: wsConnected ? "#2bd26c" : "#ffad0e",
+            color: wsConnected ? "#181" : "#222",
+            fontWeight: 700
+          }}
+          onClick={handleSyncWebSocket}
+        >
+          {wsConnected ? "🟢 Synchro active" : "🔄 Synchroniser"}
+        </button>
       </div>
 
       {/* Table roulette */}

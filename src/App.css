@@ -509,18 +509,13 @@ body {
   .col-cell { width: 43px; margin-right: 35px;}
   .main-table-v2 { zoom: 0.85; }
   
-  .roulette-board {
-  margin: 20px 0 18px 0;
-  display: flex;
-  justify-content: center;
-}
-.case {
+ .case {
   background: #191f1d;
   color: #fff;
   border-radius: 7px;
   border: 2.3px solid #232728;
   text-align: center;
-  font-size: 1.15em;
+  font-size: 1.13em;
   font-weight: 700;
   margin: 2.5px;
   display: flex;
@@ -539,6 +534,7 @@ body {
   color: #ffe34d !important;
   font-weight: 800 !important;
 }
+
 
   
   

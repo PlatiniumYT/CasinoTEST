@@ -1,0 +1,290 @@
+body, html {
+  background: #111212;
+  color: #fff;
+  font-family: 'Inter', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.casino-bg {
+  background: #111212;
+  min-height: 100vh;
+  width: 100vw;
+  padding: 0;
+}
+
+.casino-title {
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 2.1em;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: -2px;
+  margin: 22px 0 15px 0;
+  color: #fff;
+  text-shadow: 1px 1px 0 #222, 2px 2px 9px #0008;
+}
+
+.casino-form {
+  text-align: center;
+  margin-bottom: 17px;
+}
+
+.casino-input {
+  padding: 13px 17px;
+  border-radius: 18px;
+  font-size: 1.23em;
+  font-weight: 700;
+  margin: 0 9px 14px 0;
+  background: #191f20;
+  color: #eee;
+  border: none;
+  outline: none;
+  box-shadow: 0 0 6px 0 #222a;
+}
+
+.casino-btn {
+  border: none;
+  border-radius: 13px;
+  padding: 13px 28px;
+  font-size: 1.12em;
+  font-weight: 800;
+  margin: 8px 9px 6px 0;
+  box-shadow: 0 1.5px 8px 0 #000a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.13s, box-shadow 0.15s;
+  background: #23272b;
+  color: #ffe34d;
+}
+
+.casino-btn.add { background: #23d96c; color: #191f1d; }
+.casino-btn.reset { background: #ee3d3b; color: #fff; }
+.casino-btn.undo { background: #252e77; color: #fff; }
+.casino-btn.export { background: #2bd26c; color: #232; }
+.casino-btn.import { background: #ffe34d; color: #232; }
+.casino-btn.random { background: #ffe34d; color: #232; }
+.casino-btn.sync { background: #ffad0e; color: #222; }
+
+.casino-btn:active, .casino-btn.selected, .casino-btn:focus {
+  filter: brightness(0.96);
+  box-shadow: 0 0 0 2px #ffe34d, 0 0 12px #ffe34d88;
+  outline: none;
+}
+
+.history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 7px;
+  margin-top: 10px;
+}
+
+.history-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 1.12em;
+  font-weight: 700;
+  border-radius: 9px;
+  background: #191f1d;
+  color: #fff;
+  margin-right: 5px;
+  margin-bottom: 6px;
+  border: 2.2px solid #252525;
+  box-shadow: 0 0 7px 0 #1116;
+  cursor: pointer;
+  transition: box-shadow .14s, background .14s, color .12s;
+}
+
+.history-num.red { background: #d32020 !important; }
+.history-num.black { background: #181818 !important; }
+.history-num.green { background: #10aa2f !important; color: #fff !important; }
+.history-num.selected, .history-num.last {
+  box-shadow: 0 0 0 3px #ffe34d, 0 0 13px 4px #ffe34d39;
+  background: #2c2f18 !important;
+  color: #ffe34d !important;
+}
+
+.history-empty {
+  font-size: 1.1em;
+  color: #bbb;
+  margin-top: 8px;
+}
+
+.casino-history {
+  background: #131d1c;
+  border-radius: 12px;
+  margin: 17px auto 17px auto;
+  padding: 18px 24px 11px 24px;
+  max-width: 480px;
+  color: #e4e4e4;
+  font-size: 1.08em;
+  box-shadow: 0 2px 17px 0 #050b12bb;
+}
+
+.casino-history b {
+  color: #ffe34d;
+  font-weight: 800;
+}
+
+.zone-delay, .rank-delay {
+  margin-left: 6px;
+  font-weight: bold;
+  font-size: 1em;
+  padding: 1.5px 4.5px;
+}
+
+.sens-btn {
+  padding: 8px 20px;
+  margin: 0 3px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1.06em;
+  background: #242a37;
+  color: #ffe34d;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background .15s, color .15s;
+}
+.sens-btn.selected {
+  background: #ffe34d;
+  color: #262626;
+}
+
+.hr-sep {
+  border: none;
+  border-top: 2.5px solid #222c;
+  margin: 15px 0 13px 0;
+}
+
+.side-ranking {
+  background: #181a1b;
+  border-radius: 14px;
+  color: #ffe34d;
+  padding: 16px 28px 14px 28px;
+  margin: 17px 0 23px 0;
+  width: 340px;
+  min-width: 220px;
+  box-shadow: 0 3px 16px 0 #040707bc;
+  font-size: 1.12em;
+}
+
+.side-ranking h2 {
+  color: #ffe34d;
+  font-size: 1.09em;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.03em;
+}
+
+.side-ranking-list {
+  width: 100%;
+  font-size: 1.09em;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.side-ranking-label { color: #ffe34d; font-weight: 800; }
+.side-ranking-delay { text-align: right; padding-left: 11px; font-weight: bold; }
+
+.roulette-tapis-fr-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+  padding-left: 8px; /* Pour bien scroller vers le 0 sur mobile */
+}
+
+.roulette-tapis-fr {
+  min-width: 570px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.case {
+  background: #191f1d;
+  color: #fff;
+  border-radius: 7px;
+  border: 2.3px solid #232728;
+  text-align: center;
+  font-size: 1.13em;
+  font-weight: 700;
+  margin: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow .16s, background .16s, color .16s;
+  min-width: 38px;
+  min-height: 38px;
+  max-width: 42px;
+  max-height: 42px;
+}
+.case.red { background: #d32020 !important; }
+.case.black { background: #181818 !important; }
+.case.green, .case.zero { background: #10aa2f !important; color: #fff !important; }
+.case.selected { box-shadow: 0 0 0 4px #ffe34d, 0 0 14px 4px #ffe34d38; font-weight: 900; }
+.case.highlight {
+  box-shadow: 0 0 0 4px #ffe34d, 0 0 16px 4px #ffe34d44 !important;
+  background: #29341a !important;
+  color: #ffe34d !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 1000px) {
+  .side-ranking {
+    width: 92vw;
+    max-width: 99vw;
+    padding: 7px 2vw 9px 2vw;
+    font-size: 0.99em;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (max-width: 800px) {
+  .roulette-tapis-fr { min-width: 415px; }
+  .case {
+    font-size: 1em;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 34px;
+    max-height: 34px;
+  }
+  .side-ranking { width: 98vw; }
+}
+
+@media (max-width: 700px) {
+  .main-table-v2 { zoom: 0.7; }
+  .table-roulette { zoom: 0.7; }
+  .dozen-cell { width: 90px; }
+  .outside-cell { width: 45px; }
+  .col-cell { width: 25px; margin-right: 18px;}
+  .side-ranking {
+    width: 98vw;
+    max-width: 99vw;
+    padding: 7px 2vw 9px 2vw;
+    font-size: 0.95em;
+  }
+}
+
+@media (max-width: 500px) {
+  .roulette-tapis-fr { min-width: 260px; }
+  .case {
+    font-size: .93em;
+    min-width: 24px;
+    min-height: 24px;
+    max-width: 26px;
+    max-height: 26px;
+  }
+  .casino-history { padding: 8px 4px; }
+  .side-ranking { padding: 6px 1vw 6px 1vw; }
+}
+
+::-webkit-scrollbar {
+  width: 6px; height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #252828;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #191c1c;
+}

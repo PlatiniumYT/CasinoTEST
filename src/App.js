@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 import { RouletteWheel } from "./RouletteWheel";
 
-// ---- Carrés personnalisés pour le classement retard catégorie 2 ----
 const CARRES = [
   [1,2,4,5],   [2,3,5,6],
   [4,5,7,8],   [5,6,8,9],
@@ -66,11 +65,11 @@ function getRetardColor(ratio) {
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
   const colors = [
-    { stop: 1, color: [39, 224, 76] },
-    { stop: 3, color: [255, 224, 54] },
-    { stop: 5, color: [255, 143, 40] },
-    { stop: 6, color: [255, 48, 48] },
-    { stop: 9, color: [130, 0, 30] }
+    { stop: 1, color: [39, 224, 76] },    // Vert
+    { stop: 3, color: [255, 224, 54] },   // Jaune
+    { stop: 5, color: [255, 143, 40] },   // Orange
+    { stop: 6, color: [255, 48, 48] },    // Rouge vif
+    { stop: 9, color: [130, 0, 30] }      // Bordeaux foncé
   ];
   let from, to;
   for (let i = 0; i < colors.length - 1; i++) {
@@ -109,7 +108,6 @@ function App() {
   const [highlightCarre, setHighlightCarre] = useState([]);
   const tapisScrollRef = useRef(null);
 
-  // --- Analyse automatique du dernier tirage ---
   useEffect(() => {
     if (tirages.length > 0) {
       const last = tirages[tirages.length - 1];
@@ -117,14 +115,11 @@ function App() {
       setAnalyseSens(last.sens);
       setSelected(last.num);
     }
-    // Scroll auto à gauche du plateau
     if (tapisScrollRef.current) {
       tapisScrollRef.current.scrollLeft = 0;
     }
-    // eslint-disable-next-line
   }, [tirages.length]);
 
-  // --- Synchro websocket ---
   function handleSyncWebSocket() {
     if (wsRef.current) {
       wsRef.current.close();
@@ -148,7 +143,6 @@ function App() {
     };
   }
 
-  // --- Ajout manuel/aléatoire ---
   function handleAdd(numArg) {
     const num = typeof numArg === "number" ? numArg : Number(input);
     if (!Number.isInteger(num) || num < 0 || num > 36) return;
@@ -178,7 +172,6 @@ function App() {
     handleAdd(num);
   }
 
-  // --- Import/export ---
   function handleExport() {
     const exportArr = tirages.map(t => t.num);
     const blob = new Blob([JSON.stringify(exportArr)], { type: "application/json" });
@@ -258,13 +251,11 @@ function App() {
     return selected === num;
   }
 
-  // ---- Classement retard CARRÉS (catégorie 2) ----
   const carreRetards = CARRES.map(nums => ({
     nums,
     retard: calcRetardCarre(nums, tirages)
   })).sort((a, b) => b.retard - a.retard);
 
-  // ---- Analyse transitions (G->D ou D->G) top 5, plus récent en cas d’égalité ----
   let keyAnalysis = null;
   if (keyNumber !== null && tirages.length > 1) {
     const afters = [];
@@ -294,13 +285,14 @@ function App() {
     keyAnalysis = { afters, freq: sorted, principaux, zone, total: afters.length };
   }
 
-  // -- surlignage analyse + carré sélectionné --
   let highlightNumbers = [];
   if (highlightCarre.length > 0) {
     highlightNumbers = highlightCarre;
   } else if (keyAnalysis && keyAnalysis.freq.length) {
     highlightNumbers = keyAnalysis.freq.slice(0, 5).map(([n]) => Number(n));
   }
+
+  const CARRE_ESPERANCE = 37 / 4;
 
   return (
     <div className="casino-bg">
@@ -361,7 +353,7 @@ function App() {
         </button>
       </div>
 
-      {/* Plateau tapis roulette classique (3 lignes horizontales, 0 à gauche) */}
+      {/* Plateau tapis roulette classique */}
       <div
         className="roulette-tapis-fr-scroll"
         ref={tapisScrollRef}
@@ -376,7 +368,6 @@ function App() {
         }}
       >
         <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 570 }}>
-          {/* 0 tout à gauche */}
           <div
             className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
             style={{ width: 42, height: 42, marginRight: 10, fontWeight: 900, fontSize: "1.13em" }}
@@ -384,12 +375,10 @@ function App() {
           >
             0
           </div>
-          {/* Grille 3 lignes x 12 colonnes */}
           <div>
             {[0, 1, 2].map(line => (
               <div key={line} style={{ display: "flex", marginBottom: 2 }}>
                 {[...Array(12)].map((_, col) => {
-                  // Calcule le numéro comme sur un vrai tapis (ligne du haut = 3,6,9...; ligne du bas = 1,4,7...)
                   const num = col * 3 + (3 - line);
                   if (num > 36) return null;
                   const color = getColor(num);
@@ -447,6 +436,32 @@ function App() {
         </div>
       </div>
 
+      {/* Boutons d'analyse gauche/droite */}
+      <div style={{ display: "flex", justifyContent: "center", margin: "15px 0 10px 0", gap: 12 }}>
+        <button
+          className={`sens-btn${analyseSens === "G" ? " selected" : ""}`}
+          onClick={() => { setAnalyseSens("G"); setHighlightCarre([]); }}
+        >Analyser Gauche</button>
+        <button
+          className={`sens-btn${analyseSens === "D" ? " selected" : ""}`}
+          onClick={() => { setAnalyseSens("D"); setHighlightCarre([]); }}
+        >Analyser Droite</button>
+      </div>
+
+      {/* Roulette */}
+      <div style={{ margin: "32px auto 14px auto", display: "flex", justifyContent: "center" }}>
+        <RouletteWheel
+          size={320}
+          onAnalyseClick={num => {
+            setKeyNumber(num);
+            setSelected(num);
+            setHighlightCarre([]);
+          }}
+          selectedNumber={keyNumber}
+          highlightNumbers={highlightNumbers}
+        />
+      </div>
+
       {/* Classement retards à droite */}
       <div className="side-ranking">
         <h2>Classement Retards — Numéros</h2>
@@ -494,16 +509,7 @@ function App() {
               {retardsColor.black}
             </span>
           </li>
-          <li>
-            <span>Vert</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("color", "green", retardsColor.green) }}
-            >
-              {retardsColor.green}
-            </span>
-          </li>
-          <li>
+		  <li>
             <span>Douzaine 1</span>
             <span
               className="rank-delay"
@@ -594,8 +600,6 @@ function App() {
             </span>
           </li>
         </ul>
-
-        {/* ----------- Bloc retard catégorie 2 : CARRÉS ----------- */}
         <hr className="hr-sep" />
         <h2>Classement Retards — Catégorie 2 (Carrés)</h2>
         <ul>
@@ -609,39 +613,13 @@ function App() {
               </span>
               <span
                 className="rank-delay"
-                style={{ color: retardColor("number", 0, carre.retard) }}
+                style={{ color: getRetardColor(carre.retard / CARRE_ESPERANCE) }}
               >
                 {carre.retard}
               </span>
             </li>
           ))}
         </ul>
-      </div>
-
-      {/* Choix de l'analyse sur G ou D */}
-      <div style={{ display: "flex", justifyContent: "center", margin: "15px 0 0 0", gap: 12 }}>
-        <button
-          className={`sens-btn${analyseSens === "G" ? " selected" : ""}`}
-          onClick={() => { setAnalyseSens("G"); setHighlightCarre([]); }}
-        >Analyser Gauche</button>
-        <button
-          className={`sens-btn${analyseSens === "D" ? " selected" : ""}`}
-          onClick={() => { setAnalyseSens("D"); setHighlightCarre([]); }}
-        >Analyser Droite</button>
-      </div>
-
-      {/* Roue SVG centrée */}
-      <div style={{ margin: "32px auto 14px auto", display: "flex", justifyContent: "center" }}>
-        <RouletteWheel
-          size={320}
-          onAnalyseClick={num => {
-            setKeyNumber(num);
-            setSelected(num);
-            setHighlightCarre([]);
-          }}
-          selectedNumber={keyNumber}
-          highlightNumbers={highlightNumbers}
-        />
       </div>
 
       {/* Analyse séquence */}

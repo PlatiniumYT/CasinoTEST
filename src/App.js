@@ -2,7 +2,6 @@ import React, { useState, useRef } from "react";
 import "./App.css";
 import { RouletteWheel } from "./RouletteWheel";
 
-// Helpers couleur/roulette
 const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 const BLACK_NUMBERS = [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35];
 
@@ -54,8 +53,6 @@ function getRetardColor(ratio) {
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
   const colors = [
-    { stop: 0.2, color: [60, 180, 255] }, // Bleu (avance forte)
-    { stop: 0.5, color: [50, 215, 240] }, // Turquoise (avance)
     { stop: 1, color: [39, 224, 76] },    // Vert (normal)
     { stop: 3, color: [255, 224, 54] },   // Jaune (retard modéré)
     { stop: 5, color: [255, 143, 40] },   // Orange (retard fort)
@@ -78,15 +75,16 @@ function getRetardColor(ratio) {
 }
 
 function App() {
-  const [tirages, setTirages] = useState([]);
+  const [tirages, setTirages] = useState([]); // [{num: 32, sens: "G"}, ...]
   const [input, setInput] = useState("");
   const [selected, setSelected] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [keyNumber, setKeyNumber] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
+  const [analyseSens, setAnalyseSens] = useState("G"); // G ou D
 
-  // Fonction pour synchroniser le websocket avec le serveur Python
+  // --- SYNCHRONISATION WEBSOCKET ---
   function handleSyncWebSocket() {
     if (wsRef.current) {
       wsRef.current.close();
@@ -103,19 +101,22 @@ function App() {
       try {
         const data = JSON.parse(event.data);
         if (typeof data.result !== "undefined") {
+          const sens = ((tirages.length) % 2 === 0) ? "G" : "D";
           setUndoStack(current => [...current, tirages]);
-          setTirages(current => [...current, Number(data.result)]);
+          setTirages(current => [...current, { num: Number(data.result), sens }]);
           setSelected(Number(data.result));
         }
       } catch (e) { /* ignore */ }
     };
   }
 
-  function handleAdd() {
-    const num = Number(input);
+  // --- AJOUT MANUEL / ALEATOIRE ---
+  function handleAdd(numArg) {
+    const num = typeof numArg === "number" ? numArg : Number(input);
     if (!Number.isInteger(num) || num < 0 || num > 36) return;
+    const sens = ((tirages.length) % 2 === 0) ? "G" : "D";
     setUndoStack([...undoStack, tirages]);
-    setTirages([...tirages, num]);
+    setTirages([...tirages, { num, sens }]);
     setInput("");
     setSelected(num);
   }
@@ -134,12 +135,13 @@ function App() {
   }
   function handleRandom() {
     const num = Math.floor(Math.random() * 37);
-    setUndoStack([...undoStack, tirages]);
-    setTirages([...tirages, num]);
-    setSelected(num);
+    handleAdd(num);
   }
+
+  // --- IMPORT/EXPORT ---
   function handleExport() {
-    const blob = new Blob([JSON.stringify(tirages)], { type: "application/json" });
+    const exportArr = tirages.map(t => t.num);
+    const blob = new Blob([JSON.stringify(exportArr)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -158,8 +160,14 @@ function App() {
         const data = JSON.parse(evt.target.result);
         if (Array.isArray(data) && data.every(n => Number.isInteger(n) && n >= 0 && n <= 36)) {
           setUndoStack([...undoStack, tirages]);
-          setTirages([...tirages, ...data]);
-          setSelected([...tirages, ...data].slice(-1)[0] ?? null);
+          // Ajoute chaque tirage en alternant G/D
+          const start = tirages.length % 2;
+          const imported = data.map((num, i) => ({
+            num,
+            sens: ( (i+start) % 2 === 0 ) ? "G" : "D"
+          }));
+          setTirages([...tirages, ...imported]);
+          setSelected(imported.length ? imported[imported.length-1].num : null);
           setKeyNumber(null);
         } else {
           alert("Fichier invalide (attendu : liste de numéros 0-36)");
@@ -172,15 +180,16 @@ function App() {
     e.target.value = "";
   }
 
+  // --- CALCULS ---
   function calcRetards(type, items, fn) {
     let retards = {};
     for (let val of items) {
       let count = 0;
       for (let i = tirages.length - 1; i >= 0; i--) {
-        if (fn(tirages[i]) === val) break;
+        if (fn(tirages[i].num) === val) break;
         count++;
       }
-      if (!tirages.some(t => fn(t) === val)) count = tirages.length;
+      if (!tirages.some(t => fn(t.num) === val)) count = tirages.length;
       retards[val] = count;
     }
     return retards;
@@ -211,27 +220,29 @@ function App() {
     return selected === num;
   }
 
-  // Analyse séquentielle
-  let keyAnalysis = null;
-  if (keyNumber !== null && tirages.length > 1) {
-    const afters = [];
-    for (let i = 0; i < tirages.length - 1; i++) {
-      if (tirages[i] === keyNumber) {
-        afters.push(tirages[i + 1]);
-      }
+  // --- ANALYSE SEQUENCE, filtrée sur sens ---
+ let keyAnalysis = null;
+if (keyNumber !== null && tirages.length > 1) {
+  const afters = [];
+  for (let i = 0; i < tirages.length - 1; i++) {
+    if (tirages[i].num === keyNumber && tirages[i].sens === analyseSens) {
+      // Prend le suivant, qui sera toujours l'autre sens
+      afters.push(tirages[i + 1].num);
     }
-    const freq = {};
-    afters.forEach(n => { freq[n] = (freq[n] || 0) + 1; });
-    const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-    const principaux = sorted.slice(0, 3).map(([n, count]) => Number(n));
-    let zone = null;
-    if (principaux.length >= 2) {
-      const min = Math.min(...principaux);
-      const max = Math.max(...principaux);
-      if (max - min <= 5) zone = `${min} - ${max}`;
-    }
-    keyAnalysis = { afters, freq: sorted, principaux, zone, total: afters.length };
   }
+  const freq = {};
+  afters.forEach(n => { freq[n] = (freq[n] || 0) + 1; });
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+  const principaux = sorted.slice(0, 3).map(([n, count]) => Number(n));
+  let zone = null;
+  if (principaux.length >= 2) {
+    const min = Math.min(...principaux);
+    const max = Math.max(...principaux);
+    if (max - min <= 5) zone = `${min} - ${max}`;
+  }
+  keyAnalysis = { afters, freq: sorted, principaux, zone, total: afters.length };
+}
+
 
   // -- surlignage des "numéros prédits" sur la roue --
   let highlightNumbers = [];
@@ -253,7 +264,7 @@ function App() {
           placeholder="Numéro (0-36)"
           onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         />
-        <button className="casino-btn add" onClick={handleAdd}>Ajouter</button>
+        <button className="casino-btn add" onClick={() => handleAdd()}>Ajouter</button>
         <button
           className="casino-btn random"
           style={{ background: "#ffe34d", color: "#232", fontWeight: 700 }}
@@ -298,6 +309,37 @@ function App() {
         </button>
       </div>
 
+      {/* Historique des tirages */}
+      <div className="casino-history">
+        <b>Historique des tirages :</b>
+        <div className="history-list">
+          {tirages.length === 0 ? (
+            <span className="history-empty">Aucun tirage.</span>
+          ) : (
+            tirages.slice(-30).map((item, idx) => (
+              <span
+                key={idx}
+                className={
+                  `history-num ${getColor(item.num)}${idx === tirages.length - 1 ? " last" : ""}`
+                }
+                title={item.sens === "G" ? "Gauche" : "Droite"}
+              >
+                {item.num}
+                <span style={{
+                  fontSize: "0.82em",
+                  marginLeft: 5,
+                  opacity: 0.85,
+                  fontWeight: "bold",
+                  letterSpacing: "0.2em"
+                }}>
+                  {item.sens}
+                </span>
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Table roulette */}
       <div className="table-roulette">
         <div className="main-table-v2">
@@ -305,11 +347,7 @@ function App() {
           <div className="zero-row">
             <div
               className={`case num0 green${isSelected(0) ? " selected" : ""}`}
-              onClick={() => {
-                setUndoStack([...undoStack, tirages]);
-                setTirages([...tirages, 0]);
-                setSelected(0);
-              }}
+              onClick={() => handleAdd(0)}
             >
               0
             </div>
@@ -325,11 +363,7 @@ function App() {
                     <div
                       className={`case ${color}${isSelected(num) ? " selected" : ""}`}
                       key={num}
-                      onClick={() => {
-                        setUndoStack([...undoStack, tirages]);
-                        setTirages([...tirages, num]);
-                        setSelected(num);
-                      }}
+                      onClick={() => handleAdd(num)}
                     >
                       {num}
                     </div>
@@ -577,6 +611,18 @@ function App() {
         </div>
       </div>
 
+      {/* Choix de l'analyse sur G ou D */}
+      <div style={{ display: "flex", justifyContent: "center", margin: "15px 0 0 0", gap: 12 }}>
+        <button
+          className={`sens-btn${analyseSens === "G" ? " selected" : ""}`}
+          onClick={() => setAnalyseSens("G")}
+        >Analyser Gauche</button>
+        <button
+          className={`sens-btn${analyseSens === "D" ? " selected" : ""}`}
+          onClick={() => setAnalyseSens("D")}
+        >Analyser Droite</button>
+      </div>
+
       {/* Roue SVG centrée */}
       <div style={{ margin: "32px auto 14px auto", display: "flex", justifyContent: "center" }}>
         <RouletteWheel
@@ -590,40 +636,17 @@ function App() {
         />
       </div>
 
-      {/* Historique */}
-      <div className="casino-history">
-        <b>Historique des tirages :</b>
-        <div className="history-list">
-          {tirages.length === 0 ? (
-            <span className="history-empty">Aucun tirage.</span>
-          ) : (
-            tirages.slice(-30).map((num, idx) => (
-              <span
-                key={idx}
-                className={
-                  `history-num ${getColor(num)}${idx === tirages.length - 1 ? " last" : ""}`
-                }
-                onClick={() => {
-                  setUndoStack([...undoStack, tirages]);
-                  setTirages([...tirages, num]);
-                  setSelected(num);
-                }}
-              >
-                {num}
-              </span>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* Analyse séquence */}
       {keyNumber !== null && (
         <div className="casino-history" style={{ marginTop: 20, background: "#202c2c" }}>
-          <b>Analyse de séquence pour le numéro&nbsp;{keyNumber} :</b>
+          <b>
+            Analyse de séquence pour le numéro&nbsp;{keyNumber} 
+            {analyseSens === "G" ? " (Gauche)" : " (Droite)"} :
+          </b>
           {keyAnalysis && keyAnalysis.total > 0 ? (
             <>
               <div style={{ margin: "6px 0" }}>
-                Après le <span style={{ color: "#ffe34d" }}>{keyNumber}</span>, les tirages suivants sont :
+                Après le <span style={{ color: "#ffe34d" }}>{keyNumber}</span> ({analyseSens}), les tirages suivants sont :
                 <ul>
                   {keyAnalysis.freq.map(([n, count], i) => (
                     <li key={n}>

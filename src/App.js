@@ -1,9 +1,24 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 import { RouletteWheel } from "./RouletteWheel";
 
 const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 const BLACK_NUMBERS = [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35];
+
+// ---- Carrés personnalisés pour le classement retard catégorie 2 ----
+const CARRES = [
+  [1,2,4,5],   [2,3,5,6],
+  [4,5,7,8],   [5,6,8,9],
+  [7,8,10,11], [8,9,11,12],
+  [10,11,13,14], [11,12,14,15],
+  [13,14,16,17], [14,15,17,18],
+  [16,17,19,20], [17,18,20,21],
+  [19,20,22,23], [20,21,23,24],
+  [22,23,25,26], [23,24,26,27],
+  [25,26,28,29], [26,27,29,30],
+  [28,29,31,32], [29,30,32,33],
+  [31,32,34,35], [32,33,35,36]
+];
 
 function getColor(num) {
   if (num === 0) return "green";
@@ -11,7 +26,6 @@ function getColor(num) {
   if (BLACK_NUMBERS.includes(num)) return "black";
   return "";
 }
-
 function getDozen(num) {
   if (num === 0) return null;
   if (num <= 12) return 1;
@@ -48,16 +62,16 @@ const ALL_COLORS = ["red", "black", "green"];
 const ALL_PARITIES = ["even", "odd"];
 const ALL_HALVES = ["low", "high"];
 
-// Dégradé couleurs retard (personnalisé)
+// ---- Couleur dynamique selon le retard ----
 function getRetardColor(ratio) {
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
   const colors = [
-    { stop: 1, color: [39, 224, 76] },    // Vert (normal)
-    { stop: 3, color: [255, 224, 54] },   // Jaune (retard modéré)
-    { stop: 5, color: [255, 143, 40] },   // Orange (retard fort)
-    { stop: 6, color: [255, 48, 48] },    // Rouge clair (retard très fort)
-    { stop: 9, color: [130, 0, 30] }      // Rouge foncé (retard extrême)
+    { stop: 1, color: [39, 224, 76] },
+    { stop: 3, color: [255, 224, 54] },
+    { stop: 5, color: [255, 143, 40] },
+    { stop: 6, color: [255, 48, 48] },
+    { stop: 9, color: [130, 0, 30] }
   ];
   let from, to;
   for (let i = 0; i < colors.length - 1; i++) {
@@ -74,6 +88,17 @@ function getRetardColor(ratio) {
   return `rgb(${color[0]},${color[1]},${color[2]})`;
 }
 
+// ---- Calcul du retard pour chaque carré ----
+function calcRetardCarre(nums, tirages) {
+  let count = 0;
+  for (let i = tirages.length - 1; i >= 0; i--) {
+    if (nums.includes(tirages[i].num)) break;
+    count++;
+  }
+  if (!tirages.some(t => nums.includes(t.num))) count = tirages.length;
+  return count;
+}
+
 function App() {
   const [tirages, setTirages] = useState([]); // [{num: 32, sens: "G"}, ...]
   const [input, setInput] = useState("");
@@ -82,9 +107,21 @@ function App() {
   const [keyNumber, setKeyNumber] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
-  const [analyseSens, setAnalyseSens] = useState("G"); // G ou D
+  const [analyseSens, setAnalyseSens] = useState("G");
+  const [highlightCarre, setHighlightCarre] = useState([]); // Pour la surbrillance du carré sélectionné
 
-  // --- SYNCHRONISATION WEBSOCKET ---
+  // ---- Analyse automatique du dernier tirage ----
+  useEffect(() => {
+    if (tirages.length > 0) {
+      const last = tirages[tirages.length - 1];
+      setKeyNumber(last.num);
+      setAnalyseSens(last.sens);
+      setSelected(last.num);
+    }
+    // eslint-disable-next-line
+  }, [tirages.length]);
+
+  // ---- Synchro websocket ----
   function handleSyncWebSocket() {
     if (wsRef.current) {
       wsRef.current.close();
@@ -110,7 +147,7 @@ function App() {
     };
   }
 
-  // --- AJOUT MANUEL / ALEATOIRE ---
+  // ---- Ajout manuel/aléatoire ----
   function handleAdd(numArg) {
     const num = typeof numArg === "number" ? numArg : Number(input);
     if (!Number.isInteger(num) || num < 0 || num > 36) return;
@@ -125,6 +162,7 @@ function App() {
     setTirages([]);
     setSelected(null);
     setKeyNumber(null);
+    setHighlightCarre([]);
   }
   function handleUndo() {
     if (undoStack.length === 0) return;
@@ -132,13 +170,14 @@ function App() {
     setUndoStack(undoStack.slice(0, -1));
     setSelected(null);
     setKeyNumber(null);
+    setHighlightCarre([]);
   }
   function handleRandom() {
     const num = Math.floor(Math.random() * 37);
     handleAdd(num);
   }
 
-  // --- IMPORT/EXPORT ---
+  // ---- Import/export ----
   function handleExport() {
     const exportArr = tirages.map(t => t.num);
     const blob = new Blob([JSON.stringify(exportArr)], { type: "application/json" });
@@ -160,14 +199,13 @@ function App() {
         const data = JSON.parse(evt.target.result);
         if (Array.isArray(data) && data.every(n => Number.isInteger(n) && n >= 0 && n <= 36)) {
           setUndoStack([...undoStack, tirages]);
-          // Ajoute chaque tirage en alternant G/D
           const start = tirages.length % 2;
           const imported = data.map((num, i) => ({
             num,
-            sens: ( (i+start) % 2 === 0 ) ? "G" : "D"
+            sens: ((i + start) % 2 === 0) ? "G" : "D"
           }));
           setTirages([...tirages, ...imported]);
-          setSelected(imported.length ? imported[imported.length-1].num : null);
+          setSelected(imported.length ? imported[imported.length - 1].num : null);
           setKeyNumber(null);
         } else {
           alert("Fichier invalide (attendu : liste de numéros 0-36)");
@@ -180,7 +218,7 @@ function App() {
     e.target.value = "";
   }
 
-  // --- CALCULS ---
+  // ---- Calculs retards classiques ----
   function calcRetards(type, items, fn) {
     let retards = {};
     for (let val of items) {
@@ -220,34 +258,48 @@ function App() {
     return selected === num;
   }
 
-  // --- ANALYSE SEQUENCE, filtrée sur sens ---
- let keyAnalysis = null;
-if (keyNumber !== null && tirages.length > 1) {
-  const afters = [];
-  for (let i = 0; i < tirages.length - 1; i++) {
-    if (tirages[i].num === keyNumber && tirages[i].sens === analyseSens) {
-      // Prend le suivant, qui sera toujours l'autre sens
-      afters.push(tirages[i + 1].num);
+  // ---- Classement retard CARRÉS (catégorie 2) ----
+  const carreRetards = CARRES.map(nums => ({
+    nums,
+    retard: calcRetardCarre(nums, tirages)
+  })).sort((a, b) => b.retard - a.retard);
+
+  // ---- Analyse transitions (G->D ou D->G) top 5, plus récent en cas d’égalité ----
+  let keyAnalysis = null;
+  if (keyNumber !== null && tirages.length > 1) {
+    const afters = [];
+    for (let i = 0; i < tirages.length - 1; i++) {
+      if (tirages[i].num === keyNumber && tirages[i].sens === analyseSens) {
+        afters.push(tirages[i + 1].num);
+      }
     }
+    const freq = {};
+    afters.forEach(n => { freq[n] = (freq[n] || 0) + 1; });
+    const lastIndex = {};
+    afters.forEach((n, idx) => { lastIndex[n] = idx; });
+    const sorted = Object.entries(freq).sort((a, b) => {
+      if (b[1] !== a[1]) {
+        return b[1] - a[1];
+      } else {
+        return lastIndex[b[0]] - lastIndex[a[0]];
+      }
+    });
+    const principaux = sorted.slice(0, 5).map(([n, count]) => Number(n));
+    let zone = null;
+    if (principaux.length >= 2) {
+      const min = Math.min(...principaux);
+      const max = Math.max(...principaux);
+      if (max - min <= 5) zone = `${min} - ${max}`;
+    }
+    keyAnalysis = { afters, freq: sorted, principaux, zone, total: afters.length };
   }
-  const freq = {};
-  afters.forEach(n => { freq[n] = (freq[n] || 0) + 1; });
-  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-  const principaux = sorted.slice(0, 3).map(([n, count]) => Number(n));
-  let zone = null;
-  if (principaux.length >= 2) {
-    const min = Math.min(...principaux);
-    const max = Math.max(...principaux);
-    if (max - min <= 5) zone = `${min} - ${max}`;
-  }
-  keyAnalysis = { afters, freq: sorted, principaux, zone, total: afters.length };
-}
 
-
-  // -- surlignage des "numéros prédits" sur la roue --
+  // -- surlignage analyse + carré sélectionné --
   let highlightNumbers = [];
-  if (keyAnalysis && keyAnalysis.freq.length) {
-    highlightNumbers = keyAnalysis.freq.slice(0, 3).map(([n]) => Number(n));
+  if (highlightCarre.length > 0) {
+    highlightNumbers = highlightCarre;
+  } else if (keyAnalysis && keyAnalysis.freq.length) {
+    highlightNumbers = keyAnalysis.freq.slice(0, 5).map(([n]) => Number(n));
   }
 
   return (
@@ -323,6 +375,12 @@ if (keyNumber !== null && tirages.length > 1) {
                   `history-num ${getColor(item.num)}${idx === tirages.length - 1 ? " last" : ""}`
                 }
                 title={item.sens === "G" ? "Gauche" : "Droite"}
+                onClick={() => {
+                  setKeyNumber(item.num);
+                  setAnalyseSens(item.sens);
+                  setSelected(item.num);
+                  setHighlightCarre([]);
+                }}
               >
                 {item.num}
                 <span style={{
@@ -346,8 +404,8 @@ if (keyNumber !== null && tirages.length > 1) {
           {/* Ligne du zéro */}
           <div className="zero-row">
             <div
-              className={`case num0 green${isSelected(0) ? " selected" : ""}`}
-              onClick={() => handleAdd(0)}
+              className={`case num0 green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
+              onClick={() => { handleAdd(0); setHighlightCarre([]); }}
             >
               0
             </div>
@@ -361,9 +419,11 @@ if (keyNumber !== null && tirages.length > 1) {
                   const color = getColor(num);
                   return (
                     <div
-                      className={`case ${color}${isSelected(num) ? " selected" : ""}`}
+                      className={
+                        `case ${color}${isSelected(num) ? " selected" : ""} ${highlightNumbers.includes(num) ? "highlight" : ""}`
+                      }
                       key={num}
-                      onClick={() => handleAdd(num)}
+                      onClick={() => { handleAdd(num); setHighlightCarre([]); }}
                     >
                       {num}
                     </div>
@@ -608,6 +668,28 @@ if (keyNumber !== null && tirages.length > 1) {
               </span>
             </li>
           </ul>
+
+          {/* ----------- Bloc retard catégorie 2 : CARRÉS ----------- */}
+          <hr className="hr-sep" />
+          <h2>Classement Retards — Catégorie 2 (Carrés)</h2>
+          <ul>
+            {carreRetards.map((carre, i) => (
+              <li key={carre.nums.join("-")} style={{marginBottom: 5, cursor: "pointer"}}
+                onClick={() => setHighlightCarre(carre.nums)}
+                onDoubleClick={() => setHighlightCarre([])}
+                title="Cliquer pour surligner les cases du carré">
+                <span>
+                  {carre.nums.join(", ")}
+                </span>
+                <span
+                  className="rank-delay"
+                  style={{ color: retardColor("number", 0, carre.retard) }}
+                >
+                  {carre.retard}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -615,11 +697,11 @@ if (keyNumber !== null && tirages.length > 1) {
       <div style={{ display: "flex", justifyContent: "center", margin: "15px 0 0 0", gap: 12 }}>
         <button
           className={`sens-btn${analyseSens === "G" ? " selected" : ""}`}
-          onClick={() => setAnalyseSens("G")}
+          onClick={() => { setAnalyseSens("G"); setHighlightCarre([]); }}
         >Analyser Gauche</button>
         <button
           className={`sens-btn${analyseSens === "D" ? " selected" : ""}`}
-          onClick={() => setAnalyseSens("D")}
+          onClick={() => { setAnalyseSens("D"); setHighlightCarre([]); }}
         >Analyser Droite</button>
       </div>
 
@@ -630,6 +712,7 @@ if (keyNumber !== null && tirages.length > 1) {
           onAnalyseClick={num => {
             setKeyNumber(num);
             setSelected(num);
+            setHighlightCarre([]);
           }}
           selectedNumber={keyNumber}
           highlightNumbers={highlightNumbers}
@@ -661,7 +744,7 @@ if (keyNumber !== null && tirages.length > 1) {
                 </div>
               )}
               <div style={{ color: "#aaa", fontSize: "0.95em" }}>
-                (Clique à nouveau sur la roue sur un autre numéro pour changer la séquence)
+                (Clique à nouveau sur la roue ou l’historique, ou double-clique sur un carré pour annuler la surbrillance)
               </div>
             </>
           ) : (

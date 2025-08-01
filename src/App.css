@@ -472,7 +472,16 @@ body {
   font-style: italic;
   font-size: 1em;
   padding-left: 8px;
+  
 }
+
+.case.highlight {
+  box-shadow: 0 0 0 4px #ffe34d, 0 0 15px 7px #ffe34d44 !important;
+  background: #292f14 !important;
+  color: #ffe34d !important;
+  font-weight: 800 !important;
+}
+
 
 /* Responsive mobile */
 @media (max-width: 1100px) {

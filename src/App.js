@@ -2,9 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 import { RouletteWheel } from "./RouletteWheel";
 
-const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
-const BLACK_NUMBERS = [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35];
-
 // ---- Carrés personnalisés pour le classement retard catégorie 2 ----
 const CARRES = [
   [1,2,4,5],   [2,3,5,6],
@@ -19,6 +16,9 @@ const CARRES = [
   [28,29,31,32], [29,30,32,33],
   [31,32,34,35], [32,33,35,36]
 ];
+
+const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+const BLACK_NUMBERS = [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35];
 
 function getColor(num) {
   if (num === 0) return "green";
@@ -67,6 +67,8 @@ function getRetardColor(ratio) {
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
   const colors = [
+    { stop: 0.2, color: [60, 180, 255] },
+    { stop: 0.5, color: [50, 215, 240] },
     { stop: 1, color: [39, 224, 76] },
     { stop: 3, color: [255, 224, 54] },
     { stop: 5, color: [255, 143, 40] },
@@ -361,6 +363,40 @@ function App() {
         </button>
       </div>
 
+      {/* Plateau "tapis casino" 0 à gauche, 1-36 en 3 colonnes */}
+      <div className="roulette-board">
+        <div style={{ display: "flex" }}>
+          {/* 0 à gauche */}
+          <div
+            className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
+            style={{ marginRight: 12, width: 40, height: 40, fontWeight: 900 }}
+            onClick={() => { handleAdd(0); setHighlightCarre([]); }}
+          >
+            0
+          </div>
+          {/* 3 colonnes de 12 numéros */}
+          {[0, 1, 2].map(col => (
+            <div className="board-col" key={col} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {[...Array(12)].map((_, i) => {
+                const num = col + 1 + i * 3;
+                if (num > 36) return null;
+                const color = getColor(num);
+                return (
+                  <div
+                    className={`case ${color}${isSelected(num) ? " selected" : ""} ${highlightNumbers.includes(num) ? "highlight" : ""}`}
+                    key={num}
+                    style={{ width: 40, height: 40, marginBottom: 1 }}
+                    onClick={() => { handleAdd(num); setHighlightCarre([]); }}
+                  >
+                    {num}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Historique des tirages */}
       <div className="casino-history">
         <b>Historique des tirages :</b>
@@ -398,299 +434,175 @@ function App() {
         </div>
       </div>
 
-      {/* Table roulette */}
-      <div className="table-roulette">
-        <div className="main-table-v2">
-          {/* Ligne du zéro */}
-          <div className="zero-row">
-            <div
-              className={`case num0 green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
-              onClick={() => { handleAdd(0); setHighlightCarre([]); }}
+      {/* Classement retards à droite */}
+      <div className="side-ranking">
+        <h2>Classement Retards — Numéros</h2>
+        <table className="side-ranking-list">
+          <tbody>
+            {ALL_NUMBERS
+              .map(n => ({
+                num: n,
+                retard: retardsNum[n]
+              }))
+              .sort((a, b) => b.retard - a.retard)
+              .slice(0, 10)
+              .map(({ num, retard }, i) => (
+                <tr key={num}>
+                  <td className="side-ranking-label">{num}</td>
+                  <td
+                    className="side-ranking-delay"
+                    style={{
+                      color: retardColor("number", num, retard)
+                    }}>
+                    {retard}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+        <hr className="hr-sep" />
+        <h2>Classement Retards — Catégories</h2>
+        <ul>
+          <li>
+            <span>Rouge</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("color", "red", retardsColor.red) }}
             >
-              0
-            </div>
-          </div>
-          {/* Grille principale */}
-          <div className="main-grid">
-            {[...Array(12)].map((_, r) => (
-              <div className="table-row" key={r}>
-                {[...Array(3)].map((_, c) => {
-                  const num = r * 3 + c + 1;
-                  const color = getColor(num);
-                  return (
-                    <div
-                      className={
-                        `case ${color}${isSelected(num) ? " selected" : ""} ${highlightNumbers.includes(num) ? "highlight" : ""}`
-                      }
-                      key={num}
-                      onClick={() => { handleAdd(num); setHighlightCarre([]); }}
-                    >
-                      {num}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-          {/* Douzaines */}
-          <div className="dozen-row">
-            {ALL_DOZENS.map(doz => (
-              <div className="dozen-cell" key={doz}>
-                {doz}ᵉ Douzaine
-                <span className="zone-delay"
-                  style={{
-                    color: retardColor("dozen", doz, retardsDozen[doz])
-                  }}>
-                  {retardsDozen[doz]}
-                </span>
-              </div>
-            ))}
-          </div>
-          {/* Outside bets */}
-          <div className="outside-row">
-            <div className="outside-cell red-case">
-              Rouge
-              <span className="zone-delay"
-                style={{
-                  color: retardColor("color", "red", retardsColor.red)
-                }}>
-                {retardsColor.red}
-              </span>
-            </div>
-            <div className="outside-cell black-case">
-              Noir
-              <span className="zone-delay"
-                style={{
-                  color: retardColor("color", "black", retardsColor.black)
-                }}>
-                {retardsColor.black}
-              </span>
-            </div>
-            <div className="outside-cell">
-              Pair
-              <span className="zone-delay"
-                style={{
-                  color: retardColor("parity", "even", retardsParity.even)
-                }}>
-                {retardsParity.even}
-              </span>
-            </div>
-            <div className="outside-cell">
-              Impair
-              <span className="zone-delay"
-                style={{
-                  color: retardColor("parity", "odd", retardsParity.odd)
-                }}>
-                {retardsParity.odd}
-              </span>
-            </div>
-          </div>
-          {/* High / Low */}
-          <div className="outside-row">
-            <div className="outside-cell">
-              Manque (1-18)
-              <span className="zone-delay"
-                style={{
-                  color: retardColor("half", "low", retardsHalf.low)
-                }}>
-                {retardsHalf.low}
-              </span>
-            </div>
-            <div className="outside-cell">
-              Passe (19-36)
-              <span className="zone-delay"
-                style={{
-                  color: retardColor("half", "high", retardsHalf.high)
-                }}>
-                {retardsHalf.high}
-              </span>
-            </div>
-          </div>
-          {/* Colonnes */}
-          <div className="col-row">
-            {ALL_COLUMNS.map(col => (
-              <div className="col-cell" key={col}>
-                Col {col}
-                <span className="zone-delay"
-                  style={{
-                    color: retardColor("column", col, retardsColumn[col])
-                  }}>
-                  {retardsColumn[col]}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Classement retards à droite */}
-        <div className="side-ranking">
-          <h2>Classement Retards — Numéros</h2>
-          <table className="side-ranking-list">
-            <tbody>
-              {ALL_NUMBERS
-                .map(n => ({
-                  num: n,
-                  retard: retardsNum[n]
-                }))
-                .sort((a, b) => b.retard - a.retard)
-                .slice(0, 10)
-                .map(({ num, retard }, i) => (
-                  <tr key={num}>
-                    <td className="side-ranking-label">{num}</td>
-                    <td
-                      className="side-ranking-delay"
-                      style={{
-                        color: retardColor("number", num, retard)
-                      }}>
-                      {retard}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-          <hr className="hr-sep" />
-          <h2>Classement Retards — Catégories</h2>
-          <ul>
-            <li>
-              <span>Rouge</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("color", "red", retardsColor.red) }}
-              >
-                {retardsColor.red}
-              </span>
-            </li>
-            <li>
-              <span>Noir</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("color", "black", retardsColor.black) }}
-              >
-                {retardsColor.black}
-              </span>
-            </li>
-            <li>
-              <span>Vert</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("color", "green", retardsColor.green) }}
-              >
-                {retardsColor.green}
-              </span>
-            </li>
-            <li>
-              <span>Douzaine 1</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("dozen", 1, retardsDozen[1]) }}
-              >
-                {retardsDozen[1]}
-              </span>
-            </li>
-            <li>
-              <span>Douzaine 2</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("dozen", 2, retardsDozen[2]) }}
-              >
-                {retardsDozen[2]}
-              </span>
-            </li>
-            <li>
-              <span>Douzaine 3</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("dozen", 3, retardsDozen[3]) }}
-              >
-                {retardsDozen[3]}
-              </span>
-            </li>
-            <li>
-              <span>Colonne 1</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("column", 1, retardsColumn[1]) }}
-              >
-                {retardsColumn[1]}
-              </span>
-            </li>
-            <li>
-              <span>Colonne 2</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("column", 2, retardsColumn[2]) }}
-              >
-                {retardsColumn[2]}
-              </span>
-            </li>
-            <li>
-              <span>Colonne 3</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("column", 3, retardsColumn[3]) }}
-              >
-                {retardsColumn[3]}
-              </span>
-            </li>
-            <li>
-              <span>Pair</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("parity", "even", retardsParity.even) }}
-              >
-                {retardsParity.even}
-              </span>
-            </li>
-            <li>
-              <span>Impair</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("parity", "odd", retardsParity.odd) }}
-              >
-                {retardsParity.odd}
-              </span>
-            </li>
-            <li>
-              <span>Manque (1-18)</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("half", "low", retardsHalf.low) }}
-              >
-                {retardsHalf.low}
-              </span>
-            </li>
-            <li>
-              <span>Passe (19-36)</span>
-              <span
-                className="rank-delay"
-                style={{ color: retardColor("half", "high", retardsHalf.high) }}
-              >
-                {retardsHalf.high}
-              </span>
-            </li>
-          </ul>
+              {retardsColor.red}
+            </span>
+          </li>
+          <li>
+            <span>Noir</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("color", "black", retardsColor.black) }}
+            >
+              {retardsColor.black}
+            </span>
+          </li>
+          <li>
+            <span>Vert</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("color", "green", retardsColor.green) }}
+            >
+              {retardsColor.green}
+            </span>
+          </li>
+          <li>
+            <span>Douzaine 1</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("dozen", 1, retardsDozen[1]) }}
+            >
+              {retardsDozen[1]}
+            </span>
+          </li>
+          <li>
+            <span>Douzaine 2</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("dozen", 2, retardsDozen[2]) }}
+            >
+              {retardsDozen[2]}
+            </span>
+          </li>
+          <li>
+            <span>Douzaine 3</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("dozen", 3, retardsDozen[3]) }}
+            >
+              {retardsDozen[3]}
+            </span>
+          </li>
+          <li>
+            <span>Colonne 1</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("column", 1, retardsColumn[1]) }}
+            >
+              {retardsColumn[1]}
+            </span>
+          </li>
+          <li>
+            <span>Colonne 2</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("column", 2, retardsColumn[2]) }}
+            >
+              {retardsColumn[2]}
+            </span>
+          </li>
+          <li>
+            <span>Colonne 3</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("column", 3, retardsColumn[3]) }}
+            >
+              {retardsColumn[3]}
+            </span>
+          </li>
+          <li>
+            <span>Pair</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("parity", "even", retardsParity.even) }}
+            >
+              {retardsParity.even}
+            </span>
+          </li>
+          <li>
+            <span>Impair</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("parity", "odd", retardsParity.odd) }}
+            >
+              {retardsParity.odd}
+            </span>
+          </li>
+          <li>
+            <span>Manque (1-18)</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("half", "low", retardsHalf.low) }}
+            >
+              {retardsHalf.low}
+            </span>
+          </li>
+          <li>
+            <span>Passe (19-36)</span>
+            <span
+              className="rank-delay"
+              style={{ color: retardColor("half", "high", retardsHalf.high) }}
+            >
+              {retardsHalf.high}
+            </span>
+          </li>
+        </ul>
 
-          {/* ----------- Bloc retard catégorie 2 : CARRÉS ----------- */}
-          <hr className="hr-sep" />
-          <h2>Classement Retards — Catégorie 2 (Carrés)</h2>
-          <ul>
-            {carreRetards.map((carre, i) => (
-              <li key={carre.nums.join("-")} style={{marginBottom: 5, cursor: "pointer"}}
-                onClick={() => setHighlightCarre(carre.nums)}
-                onDoubleClick={() => setHighlightCarre([])}
-                title="Cliquer pour surligner les cases du carré">
-                <span>
-                  {carre.nums.join(", ")}
-                </span>
-                <span
-                  className="rank-delay"
-                  style={{ color: retardColor("number", 0, carre.retard) }}
-                >
-                  {carre.retard}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* ----------- Bloc retard catégorie 2 : CARRÉS ----------- */}
+        <hr className="hr-sep" />
+        <h2>Classement Retards — Catégorie 2 (Carrés)</h2>
+        <ul>
+          {carreRetards.map((carre, i) => (
+            <li key={carre.nums.join("-")} style={{marginBottom: 5, cursor: "pointer"}}
+              onClick={() => setHighlightCarre(carre.nums)}
+              onDoubleClick={() => setHighlightCarre([])}
+              title="Cliquer pour surligner les cases du carré">
+              <span>
+                {carre.nums.join(", ")}
+              </span>
+              <span
+                className="rank-delay"
+                style={{ color: retardColor("number", 0, carre.retard) }}
+              >
+                {carre.retard}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Choix de l'analyse sur G ou D */}

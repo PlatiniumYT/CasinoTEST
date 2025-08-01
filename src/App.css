@@ -535,6 +535,57 @@ body {
   font-weight: 800 !important;
 }
 
+.roulette-tapis-fr-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+}
+.roulette-tapis-fr {
+  min-width: 570px; /* Largeur mini sur desktop */
+}
+.case {
+  background: #191f1d;
+  color: #fff;
+  border-radius: 7px;
+  border: 2.3px solid #232728;
+  text-align: center;
+  font-size: 1.11em;
+  font-weight: 700;
+  margin: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow .16s, background .16s, color .16s;
+  min-width: 38px;
+  min-height: 38px;
+  max-width: 42px;
+  max-height: 42px;
+}
+
+@media (max-width: 800px) {
+  .roulette-tapis-fr { min-width: 415px; }
+  .case {
+    font-size: 1em;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 34px;
+    max-height: 34px;
+  }
+}
+@media (max-width: 500px) {
+  .roulette-tapis-fr { min-width: 260px; }
+  .case {
+    font-size: .93em;
+    min-width: 24px;
+    min-height: 24px;
+    max-width: 26px;
+    max-height: 26px;
+  }
+}
+
+
 
   
   

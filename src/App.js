@@ -363,37 +363,49 @@ function App() {
         </button>
       </div>
 
-<div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", margin: "18px 0" }}>
-  {/* 0 tout à gauche */}
-  <div
-    className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
-    style={{ width: 42, height: 42, marginRight: 10, fontWeight: 900, fontSize: "1.13em" }}
-    onClick={() => { handleAdd(0); setHighlightCarre([]); }}
-  >
-    0
-  </div>
-  {/* Grille 3 lignes x 12 colonnes */}
-  <div>
-    {[0, 1, 2].map(line => (
-      <div key={line} style={{ display: "flex", marginBottom: 2 }}>
-        {[...Array(12)].map((_, col) => {
-          // Calcule le numéro comme sur un vrai tapis (ligne du haut = 3,6,9...; ligne du bas = 1,4,7...)
-          const num = col * 3 + (3 - line);
-          if (num > 36) return null;
-          const color = getColor(num);
-          return (
-            <div
-              className={`case ${color}${isSelected(num) ? " selected" : ""} ${highlightNumbers.includes(num) ? "highlight" : ""}`}
-              key={num}
-              style={{ width: 42, height: 42, marginRight: 2 }}
-              onClick={() => { handleAdd(num); setHighlightCarre([]); }}
-            >
-              {num}
-            </div>
-          );
-        })}
-      </div>
-    ))}
+<div
+  className="roulette-tapis-fr-scroll"
+  style={{
+    width: "100%",
+    overflowX: "auto",
+    paddingBottom: 8,
+    marginBottom: 18,
+    display: "flex",
+    justifyContent: "center"
+  }}
+>
+  <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 560 }}>
+    {/* 0 tout à gauche */}
+    <div
+      className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
+      style={{ width: 42, height: 42, marginRight: 10, fontWeight: 900, fontSize: "1.13em" }}
+      onClick={() => { handleAdd(0); setHighlightCarre([]); }}
+    >
+      0
+    </div>
+    {/* Grille 3 lignes x 12 colonnes */}
+    <div>
+      {[0, 1, 2].map(line => (
+        <div key={line} style={{ display: "flex", marginBottom: 2 }}>
+          {[...Array(12)].map((_, col) => {
+            // Calcule le numéro comme sur un vrai tapis (ligne du haut = 3,6,9...; ligne du bas = 1,4,7...)
+            const num = col * 3 + (3 - line);
+            if (num > 36) return null;
+            const color = getColor(num);
+            return (
+              <div
+                className={`case ${color}${isSelected(num) ? " selected" : ""} ${highlightNumbers.includes(num) ? "highlight" : ""}`}
+                key={num}
+                style={{ width: 42, height: 42, marginRight: 2 }}
+                onClick={() => { handleAdd(num); setHighlightCarre([]); }}
+              >
+                {num}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
   </div>
 </div>
 

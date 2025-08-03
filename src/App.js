@@ -16,6 +16,11 @@ const CARRES = [
   [31,32,34,35], [32,33,35,36]
 ];
 
+const ROULETTE_ORDER = [
+  0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,
+  10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26
+];
+
 const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 const BLACK_NUMBERS = [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35];
 
@@ -86,6 +91,14 @@ function getRetardColor(ratio) {
   return `rgb(${color[0]},${color[1]},${color[2]})`;
 }
 
+// Fonction utilitaire pour calculer le pourcentage du dégradé
+function getRetardPercent(ratio) {
+  // ratio 1 => 0% (vert), ratio 9 => 100% (rouge foncé)
+  if (ratio <= 1) return 0;
+  if (ratio >= 9) return 100;
+  return Math.round(((ratio - 1) / 8) * 100);
+}
+
 function calcRetardCarre(nums, tirages) {
   let count = 0;
   for (let i = tirages.length - 1; i >= 0; i--) {
@@ -94,6 +107,29 @@ function calcRetardCarre(nums, tirages) {
   }
   if (!tirages.some(t => nums.includes(t.num))) count = tirages.length;
   return count;
+}
+
+function calcTopRetardRouletteGroups(n, tirages) {
+  let bestGroup = null;
+  let bestRetard = -1;
+
+  for (let i = 0; i < ROULETTE_ORDER.length; i++) {
+    let group = [];
+    for (let j = 0; j < n; j++) {
+      group.push(ROULETTE_ORDER[(i + j) % ROULETTE_ORDER.length]);
+    }
+    let count = 0;
+    for (let t = tirages.length - 1; t >= 0; t--) {
+      if (group.includes(tirages[t].num)) break;
+      count++;
+    }
+    if (!tirages.some(t => group.includes(t.num))) count = tirages.length;
+    if (count > bestRetard) {
+      bestRetard = count;
+      bestGroup = group;
+    }
+  }
+  return { group: bestGroup, retard: bestRetard };
 }
 
 function App() {
@@ -107,6 +143,8 @@ function App() {
   const [analyseSens, setAnalyseSens] = useState("G");
   const [highlightCarre, setHighlightCarre] = useState([]);
   const tapisScrollRef = useRef(null);
+  const [showRoulette, setShowRoulette] = useState(true);
+  const [highlightGroup, setHighlightGroup] = useState([]);
 
   useEffect(() => {
     if (tirages.length > 0) {
@@ -247,6 +285,20 @@ function App() {
     const ratio = retard / esperance;
     return getRetardColor(ratio);
   }
+  function retardPercent(type, value, retard) {
+    let esperance = 1;
+    switch (type) {
+      case "number": esperance = ESPERANCE.number; break;
+      case "color": esperance = value === "green" ? ESPERANCE.green : ESPERANCE.red; break;
+      case "dozen": esperance = ESPERANCE.dozen; break;
+      case "column": esperance = ESPERANCE.column; break;
+      case "parity": esperance = ESPERANCE.even; break;
+      case "half": esperance = ESPERANCE.low; break;
+      default: esperance = 1;
+    }
+    const ratio = retard / esperance;
+    return getRetardPercent(ratio);
+  }
   function isSelected(num) {
     return selected === num;
   }
@@ -255,6 +307,14 @@ function App() {
     nums,
     retard: calcRetardCarre(nums, tirages)
   })).sort((a, b) => b.retard - a.retard);
+
+  const TOP_GROUPS = [];
+  for (let n = 2; n <= 12; n++) {
+    TOP_GROUPS.push({
+      n,
+      ...calcTopRetardRouletteGroups(n, tirages)
+    });
+  }
 
   let keyAnalysis = null;
   if (keyNumber !== null && tirages.length > 1) {
@@ -364,11 +424,11 @@ function App() {
           marginBottom: 18,
           display: "flex",
           justifyContent: "center",
-        
-		  
+          paddingLeft: 16,
+          paddingRight: 16
         }}
       >
-        <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 0 }}>
+        <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 700 }}>
           <div
             className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
             style={{ width: 42, height: 42, marginRight: 10, fontWeight: 900, fontSize: "1.13em" }}
@@ -400,9 +460,11 @@ function App() {
         </div>
       </div>
 
-      {/* Historique des tirages */}
+      {/* Historique des tirages + compteur */}
       <div className="casino-history">
-        <b>Historique des tirages :</b>
+        <b>
+          Historique des tirages <span style={{color:'#ffe34d'}}>({tirages.length})</span> :
+        </b>
         <div className="history-list">
           {tirages.length === 0 ? (
             <span className="history-empty">Aucun tirage.</span>
@@ -437,33 +499,87 @@ function App() {
         </div>
       </div>
 
-      {/* Boutons d'analyse gauche/droite */}
-      <div style={{ display: "flex", justifyContent: "center", margin: "15px 0 10px 0", gap: 12 }}>
-        <button
-          className={`sens-btn${analyseSens === "G" ? " selected" : ""}`}
-          onClick={() => { setAnalyseSens("G"); setHighlightCarre([]); }}
-        >Analyser Gauche</button>
-        <button
-          className={`sens-btn${analyseSens === "D" ? " selected" : ""}`}
-          onClick={() => { setAnalyseSens("D"); setHighlightCarre([]); }}
-        >Analyser Droite</button>
-      </div>
+      {/* BOUTON AFFICHER/MASQUER LA ROULETTE & L'ANALYSE */}
+      <button
+        className="casino-btn"
+        style={{
+          margin: "16px auto 10px auto",
+          display: "block",
+          background: "#ffe34d",
+          color: "#232",
+          fontWeight: 700
+        }}
+        onClick={() => setShowRoulette(s => !s)}
+      >
+        {showRoulette ? "Masquer la roulette & l'analyse" : "Afficher la roulette & l'analyse"}
+      </button>
 
-      {/* Roulette */}
-      <div style={{ margin: "32px auto 14px auto", display: "flex", justifyContent: "center" }}>
-        <RouletteWheel
-          size={320}
-          onAnalyseClick={num => {
-            setKeyNumber(num);
-            setSelected(num);
-            setHighlightCarre([]);
-          }}
-          selectedNumber={keyNumber}
-          highlightNumbers={highlightNumbers}
-        />
-      </div>
+      {/* Bloc roulette + analyse conditionnel */}
+      {showRoulette && (
+        <>
+          {/* Boutons d'analyse gauche/droite */}
+          <div style={{ display: "flex", justifyContent: "center", margin: "15px 0 10px 0", gap: 12 }}>
+            <button
+              className={`sens-btn${analyseSens === "G" ? " selected" : ""}`}
+              onClick={() => { setAnalyseSens("G"); setHighlightCarre([]); }}
+            >Analyser Gauche</button>
+            <button
+              className={`sens-btn${analyseSens === "D" ? " selected" : ""}`}
+              onClick={() => { setAnalyseSens("D"); setHighlightCarre([]); }}
+            >Analyser Droite</button>
+          </div>
+          {/* Roulette */}
+          <div style={{ margin: "32px auto 14px auto", display: "flex", justifyContent: "center" }}>
+            <RouletteWheel
+              size={320}
+              onAnalyseClick={num => {
+                setKeyNumber(num);
+                setSelected(num);
+                setHighlightCarre([]);
+              }}
+              selectedNumber={keyNumber}
+              highlightNumbers={highlightNumbers}
+            />
+          </div>
+          {/* Analyse séquence */}
+          {keyNumber !== null && (
+            <div className="casino-history" style={{ marginTop: 20, background: "#202c2c" }}>
+              <b>
+                Analyse de séquence pour le numéro&nbsp;{keyNumber}
+                {analyseSens === "G" ? " (Gauche)" : " (Droite)"} :
+              </b>
+              {keyAnalysis && keyAnalysis.total > 0 ? (
+                <>
+                  <div style={{ margin: "6px 0" }}>
+                    Après le <span style={{ color: "#ffe34d" }}>{keyNumber}</span> ({analyseSens}), les tirages suivants sont :
+                    <ul>
+                      {keyAnalysis.freq.map(([n, count], i) => (
+                        <li key={n}>
+                          {n} <span style={{ color: "#2bd26c" }}>({count}x)</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {keyAnalysis.zone && (
+                    <div style={{ color: "#ff9933", fontWeight: 600, marginBottom: 4 }}>
+                      ➡ Les numéros les plus fréquents après {keyNumber} sont regroupés dans la zone&nbsp;: {keyAnalysis.zone}
+                    </div>
+                  )}
+                  <div style={{ color: "#aaa", fontSize: "0.95em" }}>
+                    (Clique à nouveau sur la roue ou l’historique, ou double-clique sur un carré pour annuler la surbrillance)
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: "#ff5959" }}>
+                  Pas assez de données pour une analyse sur ce numéro.
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
-      {/* Classement retards à droite */}
+      {/* ------- CLASSEMENTS RETARDS ------- */}
       <div className="side-ranking">
         <h2>Classement Retards — Numéros</h2>
         <table className="side-ranking-list">
@@ -474,190 +590,201 @@ function App() {
                 retard: retardsNum[n]
               }))
               .sort((a, b) => b.retard - a.retard)
-              .slice(0, 10)
-              .map(({ num, retard }, i) => (
-                <tr key={num}>
-                  <td className="side-ranking-label">{num}</td>
-                  <td
-                    className="side-ranking-delay"
-                    style={{
-                      color: retardColor("number", num, retard)
-                    }}>
-                    {retard}
-                  </td>
-                </tr>
-              ))}
+              .slice(0, 5)
+              .map(({ num, retard }, i) => {
+                const ratio = retard / ESPERANCE.number;
+                const percent = getRetardPercent(ratio);
+                return (
+                  <tr key={num}>
+                    <td className="side-ranking-label">{num}</td>
+                    <td
+                      className="side-ranking-delay"
+                      style={{
+                        color: getRetardColor(ratio)
+                      }}>
+                      {retard}
+                      <span style={{
+                        fontSize: "0.85em",
+                        marginLeft: 5,
+                        opacity: 0.75,
+                        fontWeight: 500,
+                        verticalAlign: "middle"
+                      }}>
+                        {percent}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
         <hr className="hr-sep" />
         <h2>Classement Retards — Catégories</h2>
         <ul>
-          <li>
-            <span>Rouge</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("color", "red", retardsColor.red) }}
-            >
-              {retardsColor.red}
-            </span>
-          </li>
-          <li>
-            <span>Noir</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("color", "black", retardsColor.black) }}
-            >
-              {retardsColor.black}
-            </span>
-          </li>
-		  <li>
-            <span>Douzaine 1</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("dozen", 1, retardsDozen[1]) }}
-            >
-              {retardsDozen[1]}
-            </span>
-          </li>
-          <li>
-            <span>Douzaine 2</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("dozen", 2, retardsDozen[2]) }}
-            >
-              {retardsDozen[2]}
-            </span>
-          </li>
-          <li>
-            <span>Douzaine 3</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("dozen", 3, retardsDozen[3]) }}
-            >
-              {retardsDozen[3]}
-            </span>
-          </li>
-          <li>
-            <span>Colonne 1</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("column", 1, retardsColumn[1]) }}
-            >
-              {retardsColumn[1]}
-            </span>
-          </li>
-          <li>
-            <span>Colonne 2</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("column", 2, retardsColumn[2]) }}
-            >
-              {retardsColumn[2]}
-            </span>
-          </li>
-          <li>
-            <span>Colonne 3</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("column", 3, retardsColumn[3]) }}
-            >
-              {retardsColumn[3]}
-            </span>
-          </li>
-          <li>
-            <span>Pair</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("parity", "even", retardsParity.even) }}
-            >
-              {retardsParity.even}
-            </span>
-          </li>
-          <li>
-            <span>Impair</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("parity", "odd", retardsParity.odd) }}
-            >
-              {retardsParity.odd}
-            </span>
-          </li>
-          <li>
-            <span>Manque (1-18)</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("half", "low", retardsHalf.low) }}
-            >
-              {retardsHalf.low}
-            </span>
-          </li>
-          <li>
-            <span>Passe (19-36)</span>
-            <span
-              className="rank-delay"
-              style={{ color: retardColor("half", "high", retardsHalf.high) }}
-            >
-              {retardsHalf.high}
-            </span>
-          </li>
+          {[
+            { label: "Rouge", val: "red", type: "color", delay: retardsColor.red },
+            { label: "Noir", val: "black", type: "color", delay: retardsColor.black },
+            { label: "Douzaine 1", val: 1, type: "dozen", delay: retardsDozen[1] },
+            { label: "Douzaine 2", val: 2, type: "dozen", delay: retardsDozen[2] },
+            { label: "Douzaine 3", val: 3, type: "dozen", delay: retardsDozen[3] },
+            { label: "Colonne 1", val: 1, type: "column", delay: retardsColumn[1] },
+            { label: "Colonne 2", val: 2, type: "column", delay: retardsColumn[2] },
+            { label: "Colonne 3", val: 3, type: "column", delay: retardsColumn[3] },
+            { label: "Pair", val: "even", type: "parity", delay: retardsParity.even },
+            { label: "Impair", val: "odd", type: "parity", delay: retardsParity.odd },
+            { label: "Manque (1-18)", val: "low", type: "half", delay: retardsHalf.low },
+            { label: "Passe (19-36)", val: "high", type: "half", delay: retardsHalf.high }
+          ]
+            .sort((a, b) => b.delay - a.delay)
+            .slice(0, 5)
+            .map(cat => {
+              let esperance = 1;
+              switch (cat.type) {
+                case "color": esperance = cat.val === "green" ? ESPERANCE.green : ESPERANCE.red; break;
+                case "dozen": esperance = ESPERANCE.dozen; break;
+                case "column": esperance = ESPERANCE.column; break;
+                case "parity": esperance = ESPERANCE.even; break;
+                case "half": esperance = ESPERANCE.low; break;
+                default: esperance = 1;
+              }
+              const ratio = cat.delay / esperance;
+              const percent = getRetardPercent(ratio);
+              return (
+                <li key={cat.label}>
+                  <span>{cat.label}</span>
+                  <span
+                    className="rank-delay"
+                    style={{ color: getRetardColor(ratio) }}
+                  >
+                    {cat.delay}
+                    <span style={{
+                      fontSize: "0.85em",
+                      marginLeft: 5,
+                      opacity: 0.75
+                    }}>
+                      {percent}%
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
         </ul>
         <hr className="hr-sep" />
         <h2>Classement Retards — Catégorie 2 (Carrés)</h2>
         <ul>
-          {carreRetards.map((carre, i) => (
-            <li key={carre.nums.join("-")} style={{marginBottom: 5, cursor: "pointer"}}
-              onClick={() => setHighlightCarre(carre.nums)}
-              onDoubleClick={() => setHighlightCarre([])}
-              title="Cliquer pour surligner les cases du carré">
-              <span>
-                {carre.nums.join(", ")}
-              </span>
-              <span
-                className="rank-delay"
-                style={{ color: getRetardColor(carre.retard / CARRE_ESPERANCE) }}
-              >
-                {carre.retard}
-              </span>
-            </li>
-          ))}
+          {carreRetards.slice(0, 5).map((carre, i) => {
+            const ratio = carre.retard / CARRE_ESPERANCE;
+            const percent = getRetardPercent(ratio);
+            return (
+              <li key={carre.nums.join("-")} style={{marginBottom: 5, cursor: "pointer"}}
+                onClick={() => setHighlightCarre(carre.nums)}
+                onDoubleClick={() => setHighlightCarre([])}
+                title="Cliquer pour surligner les cases du carré">
+                <span>
+                  {carre.nums.join(", ")}
+                </span>
+                <span
+                  className="rank-delay"
+                  style={{ color: getRetardColor(ratio) }}
+                >
+                  {carre.retard}
+                  <span style={{
+                    fontSize: "0.85em",
+                    marginLeft: 5,
+                    opacity: 0.75
+                  }}>
+                    {percent}%
+                  </span>
+                </span>
+              </li>
+            );
+          })}
         </ul>
-      </div>
 
-      {/* Analyse séquence */}
-      {keyNumber !== null && (
-        <div className="casino-history" style={{ marginTop: 20, background: "#202c2c" }}>
-          <b>
-            Analyse de séquence pour le numéro&nbsp;{keyNumber} 
-            {analyseSens === "G" ? " (Gauche)" : " (Droite)"} :
-          </b>
-          {keyAnalysis && keyAnalysis.total > 0 ? (
-            <>
-              <div style={{ margin: "6px 0" }}>
-                Après le <span style={{ color: "#ffe34d" }}>{keyNumber}</span> ({analyseSens}), les tirages suivants sont :
-                <ul>
-                  {keyAnalysis.freq.map(([n, count], i) => (
-                    <li key={n}>
-                      {n} <span style={{ color: "#2bd26c" }}>({count}x)</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {keyAnalysis.zone && (
-                <div style={{ color: "#ff9933", fontWeight: 600, marginBottom: 4 }}>
-                  ➡ Les numéros les plus fréquents après {keyNumber} sont regroupés dans la zone&nbsp;: {keyAnalysis.zone}
-                </div>
-              )}
-              <div style={{ color: "#aaa", fontSize: "0.95em" }}>
-                (Clique à nouveau sur la roue ou l’historique, ou double-clique sur un carré pour annuler la surbrillance)
-              </div>
-            </>
-          ) : (
-            <div style={{ color: "#ff5959" }}>
-              Pas assez de données pour une analyse sur ce numéro.
+        {/* -------- CLASSEMENTS GROUPES CÔTE À CÔTE & SURBRILLANCE -------- */}
+        <hr className="hr-sep" />
+        <h2>Classements Retard — Groupes consécutifs sur la roue</h2>
+        <ul>
+          {TOP_GROUPS.map(item => {
+            const esperance = 37 / item.n;
+            const ratio = item.retard / esperance;
+            const percent = getRetardPercent(ratio);
+            return (
+              <li key={item.n} style={{marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <span>
+                  <b>{item.n}</b>&nbsp;:&nbsp;{item.group.join(", ")}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    className="rank-delay"
+                    style={{
+                      color: getRetardColor(ratio),
+                      minWidth: 24,
+                      display: "inline-block",
+                      fontWeight: 700
+                    }}
+                    title={`Espérance : ${esperance.toFixed(1)}`}
+                  >
+                    {item.retard}
+                    <span style={{
+                      fontSize: "0.85em",
+                      marginLeft: 5,
+                      opacity: 0.75
+                    }}>
+                      {percent}%
+                    </span>
+                  </span>
+                  <button
+                    style={{
+                      background: highlightGroup.join('-') === item.group.join('-') ? '#23c6ff' : '#eee',
+                      color: highlightGroup.join('-') === item.group.join('-') ? '#fff' : '#333',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                      fontWeight: 700
+                    }}
+                    title="Afficher ce groupe sur la roulette"
+                    onClick={() => setHighlightGroup(item.group)}
+                  >
+                    👁️
+                  </button>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        {/* 2e roulette visuelle pour le surlignage groupes */}
+        {highlightGroup.length > 0 && (
+          <>
+            <div style={{ margin: "24px auto 10px auto", display: "flex", justifyContent: "center" }}>
+              <RouletteWheel
+                size={320}
+                highlightNumbers={highlightGroup}
+                highlightColor="#23c6ff"
+                disableInteractions={true}
+              />
             </div>
-          )}
-        </div>
-      )}
+            <div style={{textAlign: 'center', marginTop: -10, marginBottom: 20}}>
+              <button
+                onClick={() => setHighlightGroup([])}
+                style={{
+                  background: '#ffe34d',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  padding: '5px 16px',
+                  cursor: 'pointer'
+                }}
+              >
+                Réinitialiser surbrillance
+              </button>
+            </div>
+          </>
+        )}
+
+      </div>
     </div>
   );
 }

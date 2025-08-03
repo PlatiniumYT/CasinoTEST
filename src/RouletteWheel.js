@@ -16,7 +16,9 @@ export function RouletteWheel({
   showNumbers = true,
   onAnalyseClick,
   selectedNumber,
-  highlightNumbers = []
+  highlightNumbers = [],
+  highlightColor = "#ff233c",
+  disableInteractions = false
 }) {
   const cx = size / 2, cy = size / 2, rExt = size * 0.46, rInt = size * 0.36;
   const N = ROUE_ORDRE_EU.length;
@@ -35,11 +37,18 @@ export function RouletteWheel({
         const x3 = cx + rInt * Math.cos(a1), y3 = cy + rInt * Math.sin(a1);
         const fill = getRouletteColor(num);
         const isSelected = num === selectedNumber;
-        const isHighlight = highlightNumbers.includes(num);
+        const isHighlight = highlightNumbers && highlightNumbers.includes(num);
 
         return (
-          <g key={num + "-" + i} style={{ cursor: "pointer" }}
-             onClick={onAnalyseClick ? () => onAnalyseClick(num) : undefined}>
+          <g
+            key={num + "-" + i}
+            style={{ cursor: !disableInteractions && onAnalyseClick ? "pointer" : "default" }}
+            onClick={
+              !disableInteractions && onAnalyseClick
+                ? () => onAnalyseClick(num)
+                : undefined
+            }
+          >
             <path
               d={`
                 M ${x0} ${y0}
@@ -52,7 +61,7 @@ export function RouletteWheel({
               fill={fill}
               stroke={
                 isSelected ? "#ffe34d"
-                : isHighlight ? "#4dfcff"
+                : isHighlight ? highlightColor
                 : "#fff"
               }
               strokeWidth={isSelected || isHighlight ? 4 : 2}
@@ -60,7 +69,7 @@ export function RouletteWheel({
                 isSelected
                   ? { filter: "drop-shadow(0 0 10px #ffe34d99)" }
                   : isHighlight
-                  ? { filter: "drop-shadow(0 0 7px #40ffe699)" }
+                  ? { filter: `drop-shadow(0 0 7px ${highlightColor}99)` }
                   : {}
               }
             />
@@ -68,9 +77,9 @@ export function RouletteWheel({
               <text
                 x={cx + (size * 0.41) * Math.cos((a0 + a1) / 2)}
                 y={cy + (size * 0.41) * Math.sin((a0 + a1) / 2)}
-                fill="#fff"
+                fill={isHighlight ? highlightColor : "#fff"}
                 fontSize={size * 0.06}
-                fontWeight={num === 0 ? 900 : 600}
+                fontWeight={isSelected || isHighlight ? 900 : 600}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{

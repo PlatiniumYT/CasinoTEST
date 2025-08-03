@@ -426,7 +426,7 @@ function App() {
           justifyContent: "center",
         }}
       >
-        <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 1000		}}>
+        <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 0		}}>
           <div
             className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
             style={{ width: 42, height: 42, marginRight: 10, fontWeight: 900, fontSize: "1.13em" }}

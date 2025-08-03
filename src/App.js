@@ -90,10 +90,7 @@ function getRetardColor(ratio) {
   const color = from.color.map((c, i) => Math.round(c + (to.color[i] - c) * t));
   return `rgb(${color[0]},${color[1]},${color[2]})`;
 }
-
-// Fonction utilitaire pour calculer le pourcentage du dégradé
 function getRetardPercent(ratio) {
-  // ratio 1 => 0% (vert), ratio 9 => 100% (rouge foncé)
   if (ratio <= 1) return 0;
   if (ratio >= 9) return 100;
   return Math.round(((ratio - 1) / 8) * 100);
@@ -108,7 +105,6 @@ function calcRetardCarre(nums, tirages) {
   if (!tirages.some(t => nums.includes(t.num))) count = tirages.length;
   return count;
 }
-
 function calcTopRetardRouletteGroups(n, tirages) {
   let bestGroup = null;
   let bestRetard = -1;
@@ -271,34 +267,6 @@ function App() {
   const retardsParity = calcRetards("parity", ALL_PARITIES, getParity);
   const retardsHalf = calcRetards("half", ALL_HALVES, getHalf);
 
-  function retardColor(type, value, retard) {
-    let esperance = 1;
-    switch (type) {
-      case "number": esperance = ESPERANCE.number; break;
-      case "color": esperance = value === "green" ? ESPERANCE.green : ESPERANCE.red; break;
-      case "dozen": esperance = ESPERANCE.dozen; break;
-      case "column": esperance = ESPERANCE.column; break;
-      case "parity": esperance = ESPERANCE.even; break;
-      case "half": esperance = ESPERANCE.low; break;
-      default: esperance = 1;
-    }
-    const ratio = retard / esperance;
-    return getRetardColor(ratio);
-  }
-  function retardPercent(type, value, retard) {
-    let esperance = 1;
-    switch (type) {
-      case "number": esperance = ESPERANCE.number; break;
-      case "color": esperance = value === "green" ? ESPERANCE.green : ESPERANCE.red; break;
-      case "dozen": esperance = ESPERANCE.dozen; break;
-      case "column": esperance = ESPERANCE.column; break;
-      case "parity": esperance = ESPERANCE.even; break;
-      case "half": esperance = ESPERANCE.low; break;
-      default: esperance = 1;
-    }
-    const ratio = retard / esperance;
-    return getRetardPercent(ratio);
-  }
   function isSelected(num) {
     return selected === num;
   }
@@ -307,14 +275,6 @@ function App() {
     nums,
     retard: calcRetardCarre(nums, tirages)
   })).sort((a, b) => b.retard - a.retard);
-
-  const TOP_GROUPS = [];
-  for (let n = 2; n <= 12; n++) {
-    TOP_GROUPS.push({
-      n,
-      ...calcTopRetardRouletteGroups(n, tirages)
-    });
-  }
 
   let keyAnalysis = null;
   if (keyNumber !== null && tirages.length > 1) {
@@ -423,10 +383,11 @@ function App() {
           paddingBottom: 8,
           marginBottom: 18,
           display: "flex",
-          justifyContent: "center",
+          justifyContent: "center"
+          // paddingLeft et paddingRight supprimés
         }}
       >
-        <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 0		}}>
+        <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 0 }}>
           <div
             className={`case zero green${isSelected(0) ? " selected" : ""} ${highlightNumbers.includes(0) ? "highlight" : ""}`}
             style={{ width: 42, height: 42, marginRight: 10, fontWeight: 900, fontSize: "1.13em" }}
@@ -699,60 +660,78 @@ function App() {
           })}
         </ul>
 
-        {/* -------- CLASSEMENTS GROUPES CÔTE À CÔTE & SURBRILLANCE -------- */}
+        {/* -------- CLASSEMENTS GROUPES CÔTE À CÔTE (TOP 5 GLOBAL TOUTES TAILLES) -------- */}
         <hr className="hr-sep" />
-        <h2>Classements Retard — Groupes consécutifs sur la roue</h2>
+        <h2>Classements Retard — Top 5 Groupes consécutifs sur la roue</h2>
         <ul>
-          {TOP_GROUPS.map(item => {
-            const esperance = 37 / item.n;
-            const ratio = item.retard / esperance;
-            const percent = getRetardPercent(ratio);
-            return (
-              <li key={item.n} style={{marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                <span>
-                  <b>{item.n}</b>&nbsp;:&nbsp;{item.group.join(", ")}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    className="rank-delay"
+          {(() => {
+            // On construit une liste de tous les meilleurs groupes pour chaque n (2 à 36)
+            let allTopGroups = [];
+            for (let n = 2; n <= 36; n++) {
+              const { group, retard } = calcTopRetardRouletteGroups(n, tirages);
+              const esperance = 37 / n;
+              const ratio = retard / esperance;
+              allTopGroups.push({
+                n, group, retard, esperance, ratio
+              });
+            }
+            // Trie par ratio décroissant, puis n croissant (en cas d’égalité)
+            allTopGroups.sort((a, b) => b.ratio - a.ratio || a.n - b.n);
+            // On ne garde que les 5 premiers
+            return allTopGroups.slice(0, 5).map((item, idx) => {
+              const percent = getRetardPercent(item.ratio);
+              return (
+                <li key={item.n + '-' + item.group.join("-")}
                     style={{
-                      color: getRetardColor(ratio),
-                      minWidth: 24,
-                      display: "inline-block",
-                      fontWeight: 700
-                    }}
-                    title={`Espérance : ${esperance.toFixed(1)}`}
-                  >
-                    {item.retard}
-                    <span style={{
-                      fontSize: "0.85em",
-                      marginLeft: 5,
-                      opacity: 0.75
+                      marginBottom: 5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
                     }}>
-                      {percent}%
-                    </span>
+                  <span>
+                    <b>{item.n}</b>&nbsp;:&nbsp;{item.group.join(", ")}
                   </span>
-                  <button
-                    style={{
-                      background: highlightGroup.join('-') === item.group.join('-') ? '#23c6ff' : '#eee',
-                      color: highlightGroup.join('-') === item.group.join('-') ? '#fff' : '#333',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '3px 8px',
-                      cursor: 'pointer',
-                      fontWeight: 700
-                    }}
-                    title="Afficher ce groupe sur la roulette"
-                    onClick={() => setHighlightGroup(item.group)}
-                  >
-                    👁️
-                  </button>
-                </span>
-              </li>
-            );
-          })}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      className="rank-delay"
+                      style={{
+                        color: getRetardColor(item.ratio),
+                        minWidth: 24,
+                        display: "inline-block",
+                        fontWeight: 700
+                      }}
+                      title={`Espérance : ${item.esperance.toFixed(1)}`}
+                    >
+                      {item.retard}
+                      <span style={{
+                        fontSize: "0.85em",
+                        marginLeft: 5,
+                        opacity: 0.75
+                      }}>
+                        {percent}%
+                      </span>
+                    </span>
+                    <button
+                      style={{
+                        background: highlightGroup.join('-') === item.group.join('-') ? '#23c6ff' : '#eee',
+                        color: highlightGroup.join('-') === item.group.join('-') ? '#fff' : '#333',
+                        border: 'none',
+                        borderRadius: 6,
+                        padding: '3px 8px',
+                        cursor: 'pointer',
+                        fontWeight: 700
+                      }}
+                      title="Afficher ce groupe sur la roulette"
+                      onClick={() => setHighlightGroup(item.group)}
+                    >
+                      👁️
+                    </button>
+                  </span>
+                </li>
+              );
+            });
+          })()}
         </ul>
-        {/* 2e roulette visuelle pour le surlignage groupes */}
         {highlightGroup.length > 0 && (
           <>
             <div style={{ margin: "24px auto 10px auto", display: "flex", justifyContent: "center" }}>
@@ -781,7 +760,6 @@ function App() {
             </div>
           </>
         )}
-
       </div>
     </div>
   );

@@ -148,6 +148,20 @@ function App() {
   const [highlightGroup, setHighlightGroup] = useState([]);
   const [highlightGroupManual, setHighlightGroupManual] = useState(false);
 
+  // --- Sauvegarde/restaure l'historique dans le localStorage ---
+  useEffect(() => {
+    const saved = localStorage.getItem("tirages-roulette");
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (Array.isArray(data)) setTirages(data);
+      } catch(e) {}
+    }
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("tirages-roulette", JSON.stringify(tirages));
+  }, [tirages]);
+
   useEffect(() => {
     if (tirages.length > 0) {
       const last = tirages[tirages.length - 1];

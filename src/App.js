@@ -3,17 +3,10 @@ import "./App.css";
 import { RouletteWheel } from "./RouletteWheel";
 
 const CARRES = [
-  [1,2,4,5],   [2,3,5,6],
-  [4,5,7,8],   [5,6,8,9],
-  [7,8,10,11], [8,9,11,12],
-  [10,11,13,14], [11,12,14,15],
-  [13,14,16,17], [14,15,17,18],
-  [16,17,19,20], [17,18,20,21],
-  [19,20,22,23], [20,21,23,24],
-  [22,23,25,26], [23,24,26,27],
-  [25,26,28,29], [26,27,29,30],
-  [28,29,31,32], [29,30,32,33],
-  [31,32,34,35], [32,33,35,36]
+  [1,2,4,5],[2,3,5,6],[4,5,7,8],[5,6,8,9],[7,8,10,11],[8,9,11,12],
+  [10,11,13,14],[11,12,14,15],[13,14,16,17],[14,15,17,18],[16,17,19,20],
+  [17,18,20,21],[19,20,22,23],[20,21,23,24],[22,23,25,26],[23,24,26,27],
+  [25,26,28,29],[26,27,29,30],[28,29,31,32],[29,30,32,33],[31,32,34,35],[32,33,35,36]
 ];
 
 const ROULETTE_ORDER = [
@@ -70,11 +63,11 @@ function getRetardColor(ratio) {
   if (ratio < 0.2) ratio = 0.2;
   if (ratio > 9) ratio = 9;
   const colors = [
-    { stop: 1, color: [39, 224, 76] },    // Vert
-    { stop: 3, color: [255, 224, 54] },   // Jaune
-    { stop: 5, color: [255, 143, 40] },   // Orange
-    { stop: 6, color: [255, 48, 48] },    // Rouge vif
-    { stop: 9, color: [130, 0, 30] }      // Bordeaux foncé
+    { stop: 1, color: [39, 224, 76] },
+    { stop: 3, color: [255, 224, 54] },
+    { stop: 5, color: [255, 143, 40] },
+    { stop: 6, color: [255, 48, 48] },
+    { stop: 9, color: [130, 0, 30] }
   ];
   let from, to;
   for (let i = 0; i < colors.length - 1; i++) {
@@ -100,7 +93,6 @@ function getRetardPercentDelta(retard, esperance) {
   const percent2 = getRetardPercent((retard + 1) / esperance);
   return percent2 - percent;
 }
-
 function calcRetardCarre(nums, tirages) {
   let count = 0;
   for (let i = tirages.length - 1; i >= 0; i--) {
@@ -113,7 +105,6 @@ function calcRetardCarre(nums, tirages) {
 function calcTopRetardRouletteGroups(n, tirages) {
   let bestGroup = null;
   let bestRetard = -1;
-
   for (let i = 0; i < ROULETTE_ORDER.length; i++) {
     let group = [];
     for (let j = 0; j < n; j++) {
@@ -146,9 +137,8 @@ function App() {
   const tapisScrollRef = useRef(null);
   const [showRoulette, setShowRoulette] = useState(true);
   const [highlightGroup, setHighlightGroup] = useState([]);
-  const [highlightGroupManual, setHighlightGroupManual] = useState(false);
 
-  // --- Sauvegarde/restaure l'historique dans le localStorage ---
+  // Sauvegarde/restaure l'historique dans le localStorage
   useEffect(() => {
     const saved = localStorage.getItem("tirages-roulette");
     if (saved) {
@@ -174,7 +164,7 @@ function App() {
     }
   }, [tirages.length]);
 
-  // Auto-highlight du top 1 groupe après maj historique (sauf si clic manuel)
+  // Highlight auto top 1 à CHAQUE maj historique
   useEffect(() => {
     let bestGroup = null;
     let bestRatio = -1;
@@ -186,13 +176,7 @@ function App() {
         bestGroup = group;
       }
     }
-    if (!highlightGroupManual) {
-      setHighlightGroup(bestGroup || []);
-    }
-    if (tirages.length === 0) {
-      setHighlightGroupManual(false);
-    }
-    // eslint-disable-next-line
+    setHighlightGroup(bestGroup || []);
   }, [tirages]);
 
   function handleSyncWebSocket() {
@@ -217,7 +201,6 @@ function App() {
       } catch (e) {}
     };
   }
-
   function handleAdd(numArg) {
     const num = typeof numArg === "number" ? numArg : Number(input);
     if (!Number.isInteger(num) || num < 0 || num > 36) return;
@@ -246,7 +229,6 @@ function App() {
     const num = Math.floor(Math.random() * 37);
     handleAdd(num);
   }
-
   function handleExport() {
     const exportArr = tirages.map(t => t.num);
     const blob = new Blob([JSON.stringify(exportArr)], { type: "application/json" });
@@ -286,7 +268,6 @@ function App() {
     reader.readAsText(file);
     e.target.value = "";
   }
-
   function calcRetards(type, items, fn) {
     let retards = {};
     for (let val of items) {
@@ -608,17 +589,18 @@ function App() {
                         marginLeft: 5,
                         opacity: 0.75,
                         fontWeight: 500,
-                        verticalAlign: "middle"
+                        verticalAlign: "middle",
+                        color: "#23c6ff"
                       }}>
                         {percent}%
                         <span style={{
                           fontSize: "0.85em",
                           marginLeft: 5,
                           opacity: 0.85,
-                          color: "#47e4ff",
-                          border: "1px solid #47e4ff",
+                          border: "1px solid #23c6ff",
                           borderRadius: 5,
-                          padding: "0 5px"
+                          padding: "0 5px",
+                          color: "#23c6ff"
                         }}>
                           +{percentDelta}%
                         </span>
@@ -672,17 +654,18 @@ function App() {
                     <span style={{
                       fontSize: "0.85em",
                       marginLeft: 5,
-                      opacity: 0.75
+                      opacity: 0.75,
+                      color: "#23c6ff"
                     }}>
                       {percent}%
                       <span style={{
                         fontSize: "0.85em",
                         marginLeft: 5,
                         opacity: 0.85,
-                        color: "#47e4ff",
-                        border: "1px solid #47e4ff",
+                        border: "1px solid #23c6ff",
                         borderRadius: 5,
-                        padding: "0 5px"
+                        padding: "0 5px",
+                        color: "#23c6ff"
                       }}>
                         +{percentDelta}%
                       </span>
@@ -715,17 +698,18 @@ function App() {
                   <span style={{
                     fontSize: "0.85em",
                     marginLeft: 5,
-                    opacity: 0.75
+                    opacity: 0.75,
+                    color: "#23c6ff"
                   }}>
                     {percent}%
                     <span style={{
                       fontSize: "0.85em",
                       marginLeft: 5,
                       opacity: 0.85,
-                      color: "#47e4ff",
-                      border: "1px solid #47e4ff",
+                      border: "1px solid #23c6ff",
                       borderRadius: 5,
-                      padding: "0 5px"
+                      padding: "0 5px",
+                      color: "#23c6ff"
                     }}>
                       +{percentDelta}%
                     </span>
@@ -780,17 +764,18 @@ function App() {
                       <span style={{
                         fontSize: "0.85em",
                         marginLeft: 5,
-                        opacity: 0.75
+                        opacity: 0.75,
+                        color: "#23c6ff"
                       }}>
                         {percent}%
                         <span style={{
                           fontSize: "0.85em",
                           marginLeft: 5,
                           opacity: 0.85,
-                          color: "#47e4ff",
-                          border: "1px solid #47e4ff",
+                          border: "1px solid #23c6ff",
                           borderRadius: 5,
-                          padding: "0 5px"
+                          padding: "0 5px",
+                          color: "#23c6ff"
                         }}>
                           +{percentDelta}%
                         </span>
@@ -807,10 +792,7 @@ function App() {
                         fontWeight: 700
                       }}
                       title="Afficher ce groupe sur la roulette"
-                      onClick={() => {
-                        setHighlightGroup(item.group);
-                        setHighlightGroupManual(true);
-                      }}
+                      onClick={() => setHighlightGroup(item.group)}
                     >
                       👁️
                     </button>
@@ -834,7 +816,6 @@ function App() {
               <button
                 onClick={() => {
                   setHighlightGroup([]);
-                  setHighlightGroupManual(false);
                 }}
                 style={{
                   background: '#ffe34d',

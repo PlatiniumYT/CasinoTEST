@@ -95,6 +95,11 @@ function getRetardPercent(ratio) {
   if (ratio >= 9) return 100;
   return Math.round(((ratio - 1) / 8) * 100);
 }
+function getRetardPercentDelta(retard, esperance) {
+  const percent = getRetardPercent(retard / esperance);
+  const percent2 = getRetardPercent((retard + 1) / esperance);
+  return percent2 - percent;
+}
 
 function calcRetardCarre(nums, tirages) {
   let count = 0;
@@ -141,6 +146,7 @@ function App() {
   const tapisScrollRef = useRef(null);
   const [showRoulette, setShowRoulette] = useState(true);
   const [highlightGroup, setHighlightGroup] = useState([]);
+  const [highlightGroupManual, setHighlightGroupManual] = useState(false);
 
   useEffect(() => {
     if (tirages.length > 0) {
@@ -153,6 +159,27 @@ function App() {
       tapisScrollRef.current.scrollLeft = 0;
     }
   }, [tirages.length]);
+
+  // Auto-highlight du top 1 groupe après maj historique (sauf si clic manuel)
+  useEffect(() => {
+    let bestGroup = null;
+    let bestRatio = -1;
+    for (let n = 3; n <= 22; n++) {
+      const { group, retard } = calcTopRetardRouletteGroups(n, tirages);
+      const ratio = retard / (37 / n);
+      if (ratio > bestRatio) {
+        bestRatio = ratio;
+        bestGroup = group;
+      }
+    }
+    if (!highlightGroupManual) {
+      setHighlightGroup(bestGroup || []);
+    }
+    if (tirages.length === 0) {
+      setHighlightGroupManual(false);
+    }
+    // eslint-disable-next-line
+  }, [tirages]);
 
   function handleSyncWebSocket() {
     if (wsRef.current) {
@@ -384,7 +411,6 @@ function App() {
           marginBottom: 18,
           display: "flex",
           justifyContent: "center"
-          // paddingLeft et paddingRight supprimés
         }}
       >
         <div className="roulette-tapis-fr" style={{ display: "flex", alignItems: "flex-start", minWidth: 0 }}>
@@ -553,6 +579,7 @@ function App() {
               .map(({ num, retard }, i) => {
                 const ratio = retard / ESPERANCE.number;
                 const percent = getRetardPercent(ratio);
+                const percentDelta = getRetardPercentDelta(retard, ESPERANCE.number);
                 return (
                   <tr key={num}>
                     <td className="side-ranking-label">{num}</td>
@@ -570,6 +597,17 @@ function App() {
                         verticalAlign: "middle"
                       }}>
                         {percent}%
+                        <span style={{
+                          fontSize: "0.85em",
+                          marginLeft: 5,
+                          opacity: 0.85,
+                          color: "#47e4ff",
+                          border: "1px solid #47e4ff",
+                          borderRadius: 5,
+                          padding: "0 5px"
+                        }}>
+                          +{percentDelta}%
+                        </span>
                       </span>
                     </td>
                   </tr>
@@ -608,6 +646,7 @@ function App() {
               }
               const ratio = cat.delay / esperance;
               const percent = getRetardPercent(ratio);
+              const percentDelta = getRetardPercentDelta(cat.delay, esperance);
               return (
                 <li key={cat.label}>
                   <span>{cat.label}</span>
@@ -622,6 +661,17 @@ function App() {
                       opacity: 0.75
                     }}>
                       {percent}%
+                      <span style={{
+                        fontSize: "0.85em",
+                        marginLeft: 5,
+                        opacity: 0.85,
+                        color: "#47e4ff",
+                        border: "1px solid #47e4ff",
+                        borderRadius: 5,
+                        padding: "0 5px"
+                      }}>
+                        +{percentDelta}%
+                      </span>
                     </span>
                   </span>
                 </li>
@@ -634,6 +684,7 @@ function App() {
           {carreRetards.slice(0, 5).map((carre, i) => {
             const ratio = carre.retard / CARRE_ESPERANCE;
             const percent = getRetardPercent(ratio);
+            const percentDelta = getRetardPercentDelta(carre.retard, CARRE_ESPERANCE);
             return (
               <li key={carre.nums.join("-")} style={{marginBottom: 5, cursor: "pointer"}}
                 onClick={() => setHighlightCarre(carre.nums)}
@@ -653,6 +704,17 @@ function App() {
                     opacity: 0.75
                   }}>
                     {percent}%
+                    <span style={{
+                      fontSize: "0.85em",
+                      marginLeft: 5,
+                      opacity: 0.85,
+                      color: "#47e4ff",
+                      border: "1px solid #47e4ff",
+                      borderRadius: 5,
+                      padding: "0 5px"
+                    }}>
+                      +{percentDelta}%
+                    </span>
                   </span>
                 </span>
               </li>
@@ -665,9 +727,8 @@ function App() {
         <h2>Classements Retard — Top 5 Groupes consécutifs sur la roue</h2>
         <ul>
           {(() => {
-            // On construit une liste de tous les meilleurs groupes pour chaque n (2 à 36)
             let allTopGroups = [];
-            for (let n = 2; n <= 36; n++) {
+            for (let n = 3; n <= 22; n++) {
               const { group, retard } = calcTopRetardRouletteGroups(n, tirages);
               const esperance = 37 / n;
               const ratio = retard / esperance;
@@ -675,11 +736,10 @@ function App() {
                 n, group, retard, esperance, ratio
               });
             }
-            // Trie par ratio décroissant, puis n croissant (en cas d’égalité)
             allTopGroups.sort((a, b) => b.ratio - a.ratio || a.n - b.n);
-            // On ne garde que les 5 premiers
             return allTopGroups.slice(0, 5).map((item, idx) => {
               const percent = getRetardPercent(item.ratio);
+              const percentDelta = getRetardPercentDelta(item.retard, item.esperance);
               return (
                 <li key={item.n + '-' + item.group.join("-")}
                     style={{
@@ -709,6 +769,17 @@ function App() {
                         opacity: 0.75
                       }}>
                         {percent}%
+                        <span style={{
+                          fontSize: "0.85em",
+                          marginLeft: 5,
+                          opacity: 0.85,
+                          color: "#47e4ff",
+                          border: "1px solid #47e4ff",
+                          borderRadius: 5,
+                          padding: "0 5px"
+                        }}>
+                          +{percentDelta}%
+                        </span>
                       </span>
                     </span>
                     <button
@@ -722,7 +793,10 @@ function App() {
                         fontWeight: 700
                       }}
                       title="Afficher ce groupe sur la roulette"
-                      onClick={() => setHighlightGroup(item.group)}
+                      onClick={() => {
+                        setHighlightGroup(item.group);
+                        setHighlightGroupManual(true);
+                      }}
                     >
                       👁️
                     </button>
@@ -744,7 +818,10 @@ function App() {
             </div>
             <div style={{textAlign: 'center', marginTop: -10, marginBottom: 20}}>
               <button
-                onClick={() => setHighlightGroup([])}
+                onClick={() => {
+                  setHighlightGroup([]);
+                  setHighlightGroupManual(false);
+                }}
                 style={{
                   background: '#ffe34d',
                   color: '#333',
